@@ -78,8 +78,9 @@ namespace MediaBrowser.WebDashboard.Api
             // Disable embedded scripts from plugins. We'll run them later once resources have loaded
             if (html.IndexOf("<script", StringComparison.OrdinalIgnoreCase) != -1)
             {
-                html = html.Replace("<script", "<!--<script");
-                html = html.Replace("</script>", "</script>-->");
+                // bb: Allow embedded scripts
+                //html = html.Replace("<script", "<!--<script");
+                //html = html.Replace("</script>", "</script>-->");
             }
 
             if (isMainIndexPage)

@@ -345,7 +345,8 @@ namespace Emby.Server.Implementations.Library
                 ExcludeItemTypes = excludeItemTypes,
                 IsVirtualItem = false,
                 Limit = limit * 5,
-                IsPlayed = isPlayed,
+                // bb: Always include played items too
+                //IsPlayed = isPlayed,
                 DtoOptions = options,
                 MediaTypes = mediaTypes.ToArray()
             };

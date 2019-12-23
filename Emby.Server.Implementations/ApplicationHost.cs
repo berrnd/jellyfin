@@ -407,7 +407,8 @@ namespace Emby.Server.Implementations
             _validAddressResults.Clear();
         }
 
-        public string ApplicationVersion { get; } = typeof(ApplicationHost).Assembly.GetName().Version.ToString(3);
+        // bb: Always output the full version (including revision)
+        public string ApplicationVersion { get; } = typeof(ApplicationHost).Assembly.GetName().Version.ToString(4);
 
         /// <summary>
         /// Gets the current application user agent.

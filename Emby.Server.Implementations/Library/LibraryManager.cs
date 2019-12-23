@@ -3164,5 +3164,27 @@ namespace Emby.Server.Implementations.Library
 
             CollectionFolder.SaveLibraryOptions(virtualFolderPath, libraryOptions);
         }
+
+        // bb: Added event handler
+        public event EventHandler<PlaybackProgressEventArgs> ItemDownloaded;
+        public void ReportItemDownloaded(BaseItem item, User user, String clientName, String deviceName)
+        {
+            if (ItemDownloaded != null)
+            {
+                try
+                {
+                    PlaybackProgressEventArgs args = new PlaybackProgressEventArgs();
+                    args.Item = item;
+                    args.Users.Add(user);
+                    args.ClientName = clientName;
+                    args.DeviceName = deviceName;
+                    ItemDownloaded(this, args);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("Error in ItemDownloaded event handler", ex);
+                }
+            }
+        }
     }
 }

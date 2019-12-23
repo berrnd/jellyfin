@@ -849,6 +849,9 @@ namespace MediaBrowser.Api.Library
                     UserId = auth.UserId
 
                 });
+
+                // bb: Added event handler
+                this._libraryManager.ReportItemDownloaded(item, user, auth.Client, auth.Device);
             }
             catch
             {

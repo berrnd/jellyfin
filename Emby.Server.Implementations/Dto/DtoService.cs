@@ -650,6 +650,9 @@ namespace Emby.Server.Implementations.Dto
             return _libraryManager.GetGenreId(name);
         }
 
+        // bb: Added FileSizeCache
+        private Dictionary<string, long?> FileSizeCache = new Dictionary<string, long?>();
+
         /// <summary>
         /// Sets simple property values on a DTOBaseItem
         /// </summary>
@@ -659,6 +662,21 @@ namespace Emby.Server.Implementations.Dto
         /// <param name="options">The options.</param>
         private void AttachBasicFields(BaseItemDto dto, BaseItem item, BaseItem owner, DtoOptions options)
         {
+            // bb: Include file size (don't know why this is always empty in item, so load the file...)
+            if (!String.IsNullOrEmpty(item.Path) && this.FileSizeCache.ContainsKey(item.Path))
+            {
+                item.Size = this.FileSizeCache[item.Path];
+            }
+            else
+            {
+                if ((item.Size == null || item.Size == 0) && !String.IsNullOrEmpty(item.Path) && File.Exists(item.Path))
+                {
+                    item.Size = new FileInfo(item.Path).Length;
+                    this.FileSizeCache.Add(item.Path, item.Size);
+                }
+            }
+            dto.Size = item.Size;
+
             if (options.ContainsField(ItemFields.DateCreated))
             {
                 dto.DateCreated = item.DateCreated;

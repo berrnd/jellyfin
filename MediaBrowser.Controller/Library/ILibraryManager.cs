@@ -532,5 +532,9 @@ namespace MediaBrowser.Controller.Library
         void AddExternalSubtitleStreams(List<MediaStream> streams,
             string videoPath,
             string[] files);
+
+        // bb: Added event handler
+        event EventHandler<PlaybackProgressEventArgs> ItemDownloaded;
+        void ReportItemDownloaded(BaseItem item, User user, String clientName, String deviceName);
     }
 }
