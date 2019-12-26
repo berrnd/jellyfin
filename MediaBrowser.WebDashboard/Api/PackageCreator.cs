@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MediaBrowser.Controller;
@@ -44,6 +45,8 @@ namespace MediaBrowser.WebDashboard.Api
             return string.Equals(Path.GetExtension(path), ".html", StringComparison.OrdinalIgnoreCase);
         }
 
+        // bb: Use custom version
+        private string CustomVersionCache = null;
         /// <summary>
         /// Modifies the HTML by adding common meta tags, css and js.
         /// </summary>
@@ -55,6 +58,21 @@ namespace MediaBrowser.WebDashboard.Api
             string appVersion,
             string localizationCulture)
         {
+            // bb: Use custom version
+            if (this.CustomVersionCache == null)
+            {
+                string customVersionFilePath = Path.Combine(this._basePath, "myproduction.version.txt");
+                if (File.Exists(customVersionFilePath))
+                {
+                    string customVersion = File.ReadLines(customVersionFilePath).First();
+                    if (!string.IsNullOrEmpty(customVersion))
+                    {
+                        this.CustomVersionCache = customVersion;
+                    }
+                }
+            }
+            appVersion = this.CustomVersionCache;
+
             var isMainIndexPage = string.Equals(path, "index.html", StringComparison.OrdinalIgnoreCase);
 
             string html;
