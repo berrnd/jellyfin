@@ -1,11 +1,12 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Security;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,10 +19,14 @@ using Jellyfin.Drawing.Skia;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Model.Globalization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Serilog;
+using Serilog.Events;
 using Serilog.Extensions.Logging;
 using SQLitePCL;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -33,9 +38,19 @@ namespace Jellyfin.Server
     /// </summary>
     public static class Program
     {
+        /// <summary>
+        /// The name of logging configuration file containing application defaults.
+        /// </summary>
+        public static readonly string LoggingConfigFileDefault = "logging.default.json";
+
+        /// <summary>
+        /// The name of the logging configuration file containing the system-specific override settings.
+        /// </summary>
+        public static readonly string LoggingConfigFileSystem = "logging.json";
+
         private static readonly CancellationTokenSource _tokenSource = new CancellationTokenSource();
         private static readonly ILoggerFactory _loggerFactory = new SerilogLoggerFactory();
-        private static ILogger _logger;
+        private static ILogger _logger = NullLogger.Instance;
         private static bool _restartOnShutdown;
 
         /// <summary>
@@ -84,6 +99,14 @@ namespace Jellyfin.Server
 
         private static async Task StartApp(StartupOptions options)
         {
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+
+            // Log all uncaught exceptions to std error
+            static void UnhandledExceptionToConsole(object sender, UnhandledExceptionEventArgs e) =>
+                Console.Error.WriteLine("Unhandled Exception\n" + e.ExceptionObject.ToString());
+            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionToConsole;
+
             ServerApplicationPaths appPaths = CreateApplicationPaths(options);
 
             // $JELLYFIN_LOG_DIR needs to be set for the logger configuration manager
@@ -95,6 +118,8 @@ namespace Jellyfin.Server
 
             _logger = _loggerFactory.CreateLogger("Main");
 
+            // Log uncaught exceptions to the logging instead of std error
+            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionToConsole;
             AppDomain.CurrentDomain.UnhandledException += (sender, e)
                 => _logger.LogCritical((Exception)e.ExceptionObject, "Unhandled Exception");
 
@@ -127,9 +152,13 @@ namespace Jellyfin.Server
 
             _logger.LogInformation(
                 "Jellyfin version: {Version}",
-                Assembly.GetEntryAssembly().GetName().Version.ToString(3));
+                Assembly.GetEntryAssembly()!.GetName().Version!.ToString(3));
 
             ApplicationHost.LogEnvironmentInfo(_logger, appPaths);
+
+            // Make sure we have all the code pages we can get
+            // Ref: https://docs.microsoft.com/en-us/dotnet/api/system.text.codepagesencodingprovider.instance?view=netcore-3.0#remarks
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             // Increase the max http request limit
             // The default connection limit is 10 for ASP.NET hosted applications and 2 for all others.
@@ -138,13 +167,6 @@ namespace Jellyfin.Server
             // Disable the "Expect: 100-Continue" header by default
             // http://stackoverflow.com/questions/566437/http-post-returns-the-error-417-expectation-failed-c
             ServicePointManager.Expect100Continue = false;
-
-// CA5359: Do Not Disable Certificate Validation
-#pragma warning disable CA5359
-
-            // Allow all https requests
-            ServicePointManager.ServerCertificateValidationCallback = new RemoteCertificateValidationCallback(delegate { return true; });
-#pragma warning restore CA5359
 
             Batteries_V2.Init();
             if (raw.sqlite3_enable_shared_cache(1) != raw.SQLITE_OK)
@@ -157,16 +179,36 @@ namespace Jellyfin.Server
                 _loggerFactory,
                 options,
                 new ManagedFileSystem(_loggerFactory.CreateLogger<ManagedFileSystem>(), appPaths),
-                new NullImageEncoder(),
+                GetImageEncoder(appPaths),
                 new NetworkManager(_loggerFactory.CreateLogger<NetworkManager>()),
                 appConfig);
             try
             {
-                await appHost.InitAsync(new ServiceCollection()).ConfigureAwait(false);
+                ServiceCollection serviceCollection = new ServiceCollection();
+                await appHost.InitAsync(serviceCollection).ConfigureAwait(false);
 
-                appHost.ImageProcessor.ImageEncoder = GetImageEncoder(appPaths, appHost.LocalizationManager);
+                var host = CreateWebHostBuilder(appHost, serviceCollection).Build();
+
+                // A bit hacky to re-use service provider since ASP.NET doesn't allow a custom service collection.
+                appHost.ServiceProvider = host.Services;
+                appHost.FindParts();
+                Migrations.MigrationRunner.Run(appHost, _loggerFactory);
+
+                try
+                {
+                    await host.StartAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                    _logger.LogError("Kestrel failed to start! This is most likely due to an invalid address or port bind - correct your bind configuration in system.xml and try again.");
+                    throw;
+                }
 
                 await appHost.RunStartupTasksAsync().ConfigureAwait(false);
+
+                stopWatch.Stop();
+
+                _logger.LogInformation("Startup complete {Time:g}", stopWatch.Elapsed);
 
                 // Block main thread until shutdown
                 await Task.Delay(-1, _tokenSource.Token).ConfigureAwait(false);
@@ -188,6 +230,56 @@ namespace Jellyfin.Server
             {
                 StartNewInstance(options);
             }
+        }
+
+        private static IWebHostBuilder CreateWebHostBuilder(ApplicationHost appHost, IServiceCollection serviceCollection)
+        {
+            return new WebHostBuilder()
+                .UseKestrel(options =>
+                {
+                    var addresses = appHost.ServerConfigurationManager
+                        .Configuration
+                        .LocalNetworkAddresses
+                        .Select(appHost.NormalizeConfiguredLocalAddress)
+                        .Where(i => i != null)
+                        .ToList();
+                    if (addresses.Any())
+                    {
+                        foreach (var address in addresses)
+                        {
+                            _logger.LogInformation("Kestrel listening on {IpAddress}", address);
+                            options.Listen(address, appHost.HttpPort);
+
+                            if (appHost.EnableHttps && appHost.Certificate != null)
+                            {
+                                options.Listen(
+                                    address,
+                                    appHost.HttpsPort,
+                                    listenOptions => listenOptions.UseHttps(appHost.Certificate));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Kestrel listening on all interfaces");
+                        options.ListenAnyIP(appHost.HttpPort);
+
+                        if (appHost.EnableHttps && appHost.Certificate != null)
+                        {
+                            options.ListenAnyIP(
+                                appHost.HttpsPort,
+                                listenOptions => listenOptions.UseHttps(appHost.Certificate));
+                        }
+                    }
+                })
+                .UseSerilog()
+                .UseContentRoot(appHost.ContentRoot)
+                .ConfigureServices(services =>
+                {
+                    // Merge the external ServiceCollection into ASP.NET DI
+                    services.TryAdd(serviceCollection);
+                })
+                .UseStartup<Startup>();
         }
 
         /// <summary>
@@ -355,24 +447,32 @@ namespace Jellyfin.Server
 
         private static async Task<IConfiguration> CreateConfiguration(IApplicationPaths appPaths)
         {
-            string configPath = Path.Combine(appPaths.ConfigurationDirectoryPath, "logging.json");
+            const string ResourcePath = "Jellyfin.Server.Resources.Configuration.logging.json";
+            string configPath = Path.Combine(appPaths.ConfigurationDirectoryPath, LoggingConfigFileDefault);
 
             if (!File.Exists(configPath))
             {
                 // For some reason the csproj name is used instead of the assembly name
-                using (Stream rscstr = typeof(Program).Assembly
-                    .GetManifestResourceStream("Jellyfin.Server.Resources.Configuration.logging.json"))
-                using (Stream fstr = File.Open(configPath, FileMode.CreateNew))
+                await using Stream? resource = typeof(Program).Assembly.GetManifestResourceStream(ResourcePath);
+                if (resource == null)
                 {
-                    await rscstr.CopyToAsync(fstr).ConfigureAwait(false);
+                    throw new InvalidOperationException(
+                        string.Format(
+                            CultureInfo.InvariantCulture,
+                            "Invalid resource path: '{0}'",
+                            ResourcePath));
                 }
+
+                await using Stream dst = File.Open(configPath, FileMode.CreateNew);
+                await resource.CopyToAsync(dst).ConfigureAwait(false);
             }
 
             return new ConfigurationBuilder()
                 .SetBasePath(appPaths.ConfigurationDirectoryPath)
-                .AddJsonFile("logging.json", false, true)
-                .AddEnvironmentVariables("JELLYFIN_")
                 .AddInMemoryCollection(ConfigurationOptions.Configuration)
+                .AddJsonFile(LoggingConfigFileDefault, optional: false, reloadOnChange: true)
+                .AddJsonFile(LoggingConfigFileSystem, optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables("JELLYFIN_")
                 .Build();
         }
 
@@ -384,26 +484,26 @@ namespace Jellyfin.Server
                 Serilog.Log.Logger = new LoggerConfiguration()
                     .ReadFrom.Configuration(configuration)
                     .Enrich.FromLogContext()
+                    .Enrich.WithThreadId()
                     .CreateLogger();
             }
             catch (Exception ex)
             {
                 Serilog.Log.Logger = new LoggerConfiguration()
-                    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] [{ThreadId}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
                     .WriteTo.Async(x => x.File(
                         Path.Combine(appPaths.LogDirectoryPath, "log_.log"),
                         rollingInterval: RollingInterval.Day,
-                        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message}{NewLine}{Exception}"))
+                        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] [{ThreadId}] {SourceContext}: {Message}{NewLine}{Exception}"))
                     .Enrich.FromLogContext()
+                    .Enrich.WithThreadId()
                     .CreateLogger();
 
                 Serilog.Log.Logger.Fatal(ex, "Failed to create/read logger configuration");
             }
         }
 
-        private static IImageEncoder GetImageEncoder(
-            IApplicationPaths appPaths,
-            ILocalizationManager localizationManager)
+        private static IImageEncoder GetImageEncoder(IApplicationPaths appPaths)
         {
             try
             {
@@ -412,8 +512,7 @@ namespace Jellyfin.Server
 
                 return new SkiaEncoder(
                     _loggerFactory.CreateLogger<SkiaEncoder>(),
-                    appPaths,
-                    localizationManager);
+                    appPaths);
             }
             catch (Exception ex)
             {
@@ -427,7 +526,7 @@ namespace Jellyfin.Server
         {
             _logger.LogInformation("Starting new instance");
 
-            string module = options.RestartPath;
+            var module = options.RestartPath;
 
             if (string.IsNullOrWhiteSpace(module))
             {
@@ -435,7 +534,6 @@ namespace Jellyfin.Server
             }
 
             string commandLineArgsString;
-
             if (options.RestartArgs != null)
             {
                 commandLineArgsString = options.RestartArgs ?? string.Empty;

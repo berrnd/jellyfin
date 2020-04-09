@@ -8,7 +8,7 @@ set -o xtrace
 # Version variables
 NSSM_VERSION="nssm-2.24-101-g897c7ad"
 NSSM_URL="http://files.evilt.win/nssm/${NSSM_VERSION}.zip"
-FFMPEG_VERSION="ffmpeg-4.0.2-win32-static"
+FFMPEG_VERSION="ffmpeg-4.2.1-win32-static"
 FFMPEG_URL="https://ffmpeg.zeranoe.com/builds/win32/static/${FFMPEG_VERSION}.zip"
 
 # Move to source directory
@@ -19,9 +19,7 @@ web_build_dir="$( mktemp -d )"
 web_target="${SOURCE_DIR}/MediaBrowser.WebDashboard/jellyfin-web"
 git clone https://github.com/jellyfin/jellyfin-web.git ${web_build_dir}/
 pushd ${web_build_dir}
-if [[ -n ${web_branch} ]]; then
-    git checkout origin/${web_branch}
-fi
+git checkout tags/v10.5.3
 yarn install
 mkdir -p ${web_target}
 mv dist/* ${web_target}/
@@ -32,7 +30,7 @@ rm -rf ${web_build_dir}
 version="$( grep "version:" ./build.yaml | sed -E 's/version: "([0-9\.]+.*)"/\1/' )"
 
 # Build binary
-dotnet publish --configuration Release --self-contained --runtime win-x86 --output /dist/jellyfin_${version}/ "-p:GenerateDocumentationFile=false;DebugSymbols=false;DebugType=none;UseAppHost=true"
+dotnet publish Jellyfin.Server --configuration Release --self-contained --runtime win-x86 --output /dist/jellyfin_${version}/ "-p:GenerateDocumentationFile=false;DebugSymbols=false;DebugType=none;UseAppHost=true"
 
 # Prepare addins
 addin_build_dir="$( mktemp -d )"

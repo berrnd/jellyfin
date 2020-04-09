@@ -1,3 +1,6 @@
+#pragma warning disable CS1591
+#pragma warning disable SA1600
+
 using System;
 using System.Globalization;
 using System.IO;
@@ -18,7 +21,6 @@ using MediaBrowser.Controller.Playlists;
 using MediaBrowser.Model.Dlna;
 using MediaBrowser.Model.Drawing;
 using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.Extensions;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.Net;
 using Microsoft.Extensions.Logging;
@@ -434,6 +436,29 @@ namespace Emby.Dlna.Didl
                     return number + " - " + item.Name;
                 }
             }
+            else if (item is Episode ep)
+            {
+                var parent = ep.GetParent();
+                var name = parent.Name + " - ";
+
+                if (ep.ParentIndexNumber.HasValue)
+                {
+                    name += "S" + ep.ParentIndexNumber.Value.ToString("00", CultureInfo.InvariantCulture);
+                }
+                else if (!item.IndexNumber.HasValue)
+                {
+                    return name + " - " + item.Name;
+                }
+
+                name += "E" + ep.IndexNumber.Value.ToString("00", CultureInfo.InvariantCulture);
+                if (ep.IndexNumberEnd.HasValue)
+                {
+                    name += "-" + ep.IndexNumberEnd.Value.ToString("00", CultureInfo.InvariantCulture);
+                }
+
+                name += " - " + item.Name;
+                return name;
+            }
 
             return item.Name;
         }
@@ -632,7 +657,7 @@ namespace Emby.Dlna.Didl
             {
                 if (item.PremiereDate.HasValue)
                 {
-                    AddValue(writer, "dc", "date", item.PremiereDate.Value.ToString("o"), NS_DC);
+                    AddValue(writer, "dc", "date", item.PremiereDate.Value.ToString("o", CultureInfo.InvariantCulture), NS_DC);
                 }
             }
 

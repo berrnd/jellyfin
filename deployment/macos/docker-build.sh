@@ -13,9 +13,7 @@ web_build_dir="$( mktemp -d )"
 web_target="${SOURCE_DIR}/MediaBrowser.WebDashboard/jellyfin-web"
 git clone https://github.com/jellyfin/jellyfin-web.git ${web_build_dir}/
 pushd ${web_build_dir}
-if [[ -n ${web_branch} ]]; then
-    git checkout origin/${web_branch}
-fi
+git checkout tags/v10.5.3
 yarn install
 mkdir -p ${web_target}
 mv dist/* ${web_target}/
@@ -26,7 +24,7 @@ rm -rf ${web_build_dir}
 version="$( grep "version:" ./build.yaml | sed -E 's/version: "([0-9\.]+.*)"/\1/' )"
 
 # Build archives
-dotnet publish --configuration Release --self-contained --runtime osx-x64 --output /dist/jellyfin_${version}/ "-p:GenerateDocumentationFile=false;DebugSymbols=false;DebugType=none;UseAppHost=true"
+dotnet publish Jellyfin.Server --configuration Release --self-contained --runtime osx-x64 --output /dist/jellyfin_${version}/ "-p:GenerateDocumentationFile=false;DebugSymbols=false;DebugType=none;UseAppHost=true"
 tar -cvzf /jellyfin_${version}.portable.tar.gz -C /dist jellyfin_${version}
 rm -rf /dist/jellyfin_${version}
 

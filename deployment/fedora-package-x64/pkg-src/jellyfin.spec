@@ -7,7 +7,7 @@
 %endif
 
 Name:           jellyfin
-Version:        10.4.3
+Version:        10.5.3
 Release:        1%{?dist}
 Summary:        The Free Software Media Browser
 License:        GPLv2
@@ -26,19 +26,19 @@ Source16:       jellyfin-firewalld.xml
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-BuildRequires:  libcurl-devel, fontconfig-devel, freetype-devel, openssl-devel, glibc-devel, libicu-devel
+BuildRequires:  libcurl-devel, fontconfig-devel, freetype-devel, openssl-devel, glibc-devel, libicu-devel, git
 %if 0%{?fedora}
-BuildRequires:  nodejs-yarn
+BuildRequires:  nodejs-yarn, git
 %else
 # Requirements not packaged in main repos
-# From https://rpm.nodesource.com/pub_8.x/el/7/x86_64/
-BuildRequires:  nodejs >= 8 yarn
+# From https://rpm.nodesource.com/pub_10.x/el/7/x86_64/
+BuildRequires:  nodejs >= 10 yarn
 %endif
 Requires:       libcurl, fontconfig, freetype, openssl, glibc libicu
 # Requirements not packaged in main repos
 # COPR @dotnet-sig/dotnet or
 # https://packages.microsoft.com/rhel/7/prod/
-BuildRequires:  dotnet-runtime-2.2, dotnet-sdk-2.2
+BuildRequires:  dotnet-runtime-3.1, dotnet-sdk-3.1
 # RPMfusion free
 Requires:       ffmpeg
 
@@ -99,7 +99,7 @@ EOF
 %{_libdir}/%{name}/createdump
 # Needs 755 else only root can run it since binary build by dotnet is 722
 %attr(755,root,root) %{_libdir}/%{name}/jellyfin
-%{_libdir}/%{name}/sosdocsunix.txt
+%{_libdir}/%{name}/SOS_README.md
 %{_unitdir}/%{name}.service
 %{_libexecdir}/%{name}/restart.sh
 %{_prefix}/lib/firewalld/services/%{name}.xml
@@ -159,12 +159,14 @@ fi
 %systemd_postun_with_restart jellyfin.service
 
 %changelog
-* Fri Dec 06 2019 Jellyfin Packaging Team <packaging@jellyfin.org>
-- New upstream version 10.4.3; release changelog at https://github.com/jellyfin/jellyfin/releases/tag/v10.4.3
-* Sun Nov 24 2019 Jellyfin Packaging Team <packaging@jellyfin.org>
-- New upstream version 10.4.2; release changelog at https://github.com/jellyfin/jellyfin/releases/tag/v10.4.2
-* Sun Nov 03 2019 Jellyfin Packaging Team <packaging@jellyfin.org>
-- New upstream version 10.4.1; release changelog at https://github.com/jellyfin/jellyfin/releases/tag/v10.4.1
+* Sun Apr 05 2020 Jellyfin Packaging Team <packaging@jellyfin.org>
+- New upstream version 10.5.3; release changelog at https://github.com/jellyfin/jellyfin/releases/tag/v10.5.3
+* Sun Mar 22 2020 Jellyfin Packaging Team <packaging@jellyfin.org>
+- New upstream version 10.5.2; release changelog at https://github.com/jellyfin/jellyfin/releases/tag/v10.5.2
+* Sun Mar 15 2020 Jellyfin Packaging Team <packaging@jellyfin.org>
+- New upstream version 10.5.1; release changelog at https://github.com/jellyfin/jellyfin/releases/tag/v10.5.1
+* Fri Oct 11 2019 Jellyfin Packaging Team <packaging@jellyfin.org>
+- New upstream version 10.5.0; release changelog at https://github.com/jellyfin/jellyfin/releases/tag/v10.5.0
 * Sat Aug 31 2019 Jellyfin Packaging Team <packaging@jellyfin.org>
 - New upstream version 10.4.0; release changelog at https://github.com/jellyfin/jellyfin/releases/tag/v10.4.0
 * Wed Jul 24 2019 Jellyfin Packaging Team <packaging@jellyfin.org>
