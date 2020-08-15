@@ -8,26 +8,33 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
+using MediaBrowser.Model.Globalization;
 
 namespace Emby.Server.Implementations.ScheduledTasks.Tasks
 {
     /// <summary>
-    /// Deletes all transcoding temp files
+    /// Deletes all transcoding temp files.
     /// </summary>
     public class DeleteTranscodeFileTask : IScheduledTask, IConfigurableScheduledTask
     {
-        private readonly ILogger _logger;
+        private readonly ILogger<DeleteTranscodeFileTask> _logger;
         private readonly IConfigurationManager _configurationManager;
         private readonly IFileSystem _fileSystem;
+        private readonly ILocalizationManager _localization;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeleteTranscodeFileTask" /> class.
         /// </summary>
-        public DeleteTranscodeFileTask(ILogger logger, IFileSystem fileSystem, IConfigurationManager configurationManager)
+        public DeleteTranscodeFileTask(
+            ILogger<DeleteTranscodeFileTask> logger,
+            IFileSystem fileSystem,
+            IConfigurationManager configurationManager,
+            ILocalizationManager localization)
         {
             _logger = logger;
             _fileSystem = fileSystem;
             _configurationManager = configurationManager;
+            _localization = localization;
         }
 
         /// <summary>
@@ -125,18 +132,25 @@ namespace Emby.Server.Implementations.ScheduledTasks.Tasks
             }
         }
 
-        public string Name => "Clean Transcode Directory";
+        /// <inheritdoc />
+        public string Name => _localization.GetLocalizedString("TaskCleanTranscode");
 
-        public string Description => "Deletes transcode files more than one day old.";
+        /// <inheritdoc />
+        public string Description => _localization.GetLocalizedString("TaskCleanTranscodeDescription");
 
-        public string Category => "Maintenance";
+        /// <inheritdoc />
+        public string Category => _localization.GetLocalizedString("TasksMaintenanceCategory");
 
+        /// <inheritdoc />
         public string Key => "DeleteTranscodeFiles";
 
+        /// <inheritdoc />
         public bool IsHidden => false;
 
+        /// <inheritdoc />
         public bool IsEnabled => false;
 
+        /// <inheritdoc />
         public bool IsLogged => true;
     }
 }

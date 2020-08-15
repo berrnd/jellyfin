@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System.Collections.Generic;
 using System.Text;
@@ -81,6 +80,7 @@ namespace Emby.Dlna.Service
                     {
                         builder.Append("<allowedValue>" + DescriptionXmlBuilder.Escape(allowedValue) + "</allowedValue>");
                     }
+
                     builder.Append("</allowedValueList>");
                 }
 

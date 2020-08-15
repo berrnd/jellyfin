@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 namespace MediaBrowser.Model.MediaInfo
 {
@@ -11,9 +10,9 @@ namespace MediaBrowser.Model.MediaInfo
 
         public static string GetFriendlyName(string codec)
         {
-            if (string.IsNullOrEmpty(codec))
+            if (codec.Length == 0)
             {
-                return string.Empty;
+                return codec;
             }
 
             switch (codec.ToLowerInvariant())

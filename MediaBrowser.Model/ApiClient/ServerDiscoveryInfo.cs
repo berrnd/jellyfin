@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 namespace MediaBrowser.Model.ApiClient
 {
@@ -22,7 +22,7 @@ namespace MediaBrowser.Model.ApiClient
         /// </summary>
         /// <value>The name.</value>
         public string Name { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the endpoint address.
         /// </summary>

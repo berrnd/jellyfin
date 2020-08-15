@@ -15,6 +15,7 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
+using MediaBrowser.Model.Globalization;
 
 namespace Emby.Server.Implementations.ScheduledTasks
 {
@@ -26,7 +27,7 @@ namespace Emby.Server.Implementations.ScheduledTasks
         /// <summary>
         /// The _logger.
         /// </summary>
-        private readonly ILogger _logger;
+        private readonly ILogger<ChapterImagesTask> _logger;
 
         /// <summary>
         /// The _library manager.
@@ -39,18 +40,27 @@ namespace Emby.Server.Implementations.ScheduledTasks
 
         private readonly IEncodingManager _encodingManager;
         private readonly IFileSystem _fileSystem;
+        private readonly ILocalizationManager _localization;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ChapterImagesTask" /> class.
         /// </summary>
-        public ChapterImagesTask(ILoggerFactory loggerFactory, ILibraryManager libraryManager, IItemRepository itemRepo, IApplicationPaths appPaths, IEncodingManager encodingManager, IFileSystem fileSystem)
+        public ChapterImagesTask(
+            ILoggerFactory loggerFactory,
+            ILibraryManager libraryManager,
+            IItemRepository itemRepo,
+            IApplicationPaths appPaths,
+            IEncodingManager encodingManager,
+            IFileSystem fileSystem,
+            ILocalizationManager localization)
         {
-            _logger = loggerFactory.CreateLogger(GetType().Name);
+            _logger = loggerFactory.CreateLogger<ChapterImagesTask>();
             _libraryManager = libraryManager;
             _itemRepo = itemRepo;
             _appPaths = appPaths;
             _encodingManager = encodingManager;
             _fileSystem = fileSystem;
+            _localization = localization;
         }
 
         /// <summary>
@@ -153,24 +163,31 @@ namespace Emby.Server.Implementations.ScheduledTasks
                 }
                 catch (ObjectDisposedException)
                 {
-                    //TODO Investigate and properly fix.
+                    // TODO Investigate and properly fix.
                     break;
                 }
             }
         }
 
-        public string Name => "Extract Chapter Images";
+        /// <inheritdoc />
+        public string Name => _localization.GetLocalizedString("TaskRefreshChapterImages");
 
-        public string Description => "Creates thumbnails for videos that have chapters.";
+        /// <inheritdoc />
+        public string Description => _localization.GetLocalizedString("TaskRefreshChapterImagesDescription");
 
-        public string Category => "Library";
+        /// <inheritdoc />
+        public string Category => _localization.GetLocalizedString("TasksLibraryCategory");
 
+        /// <inheritdoc />
         public string Key => "RefreshChapterImages";
 
+        /// <inheritdoc />
         public bool IsHidden => false;
 
+        /// <inheritdoc />
         public bool IsEnabled => true;
 
+        /// <inheritdoc />
         public bool IsLogged => true;
     }
 }

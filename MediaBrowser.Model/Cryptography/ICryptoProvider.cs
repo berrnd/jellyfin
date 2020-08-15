@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System.Collections.Generic;
 
@@ -11,7 +10,7 @@ namespace MediaBrowser.Model.Cryptography
 
         IEnumerable<string> GetSupportedHashMethods();
 
-        byte[] ComputeHash(string HashMethod, byte[] bytes, byte[] salt);
+        byte[] ComputeHash(string hashMethod, byte[] bytes, byte[] salt);
 
         byte[] ComputeHashWithDefaultMethod(byte[] bytes, byte[] salt);
 

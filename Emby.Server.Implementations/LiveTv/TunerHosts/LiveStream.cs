@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -8,8 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediaBrowser.Controller.Library;
 using MediaBrowser.Common.Configuration;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.LiveTv;
@@ -59,12 +58,15 @@ namespace Emby.Server.Implementations.LiveTv.TunerHosts
         protected virtual int EmptyReadLimit => 1000;
 
         public MediaSourceInfo OriginalMediaSource { get; set; }
+
         public MediaSourceInfo MediaSource { get; set; }
 
         public int ConsumerCount { get; set; }
 
         public string OriginalStreamId { get; set; }
+
         public bool EnableStreamSharing { get; set; }
+
         public string UniqueId { get; }
 
         public string TunerHostId { get; }
@@ -221,11 +223,9 @@ namespace Emby.Server.Implementations.LiveTv.TunerHosts
             }
             catch (IOException)
             {
-
             }
             catch (ArgumentException)
             {
-
             }
             catch (Exception ex)
             {

@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Globalization;
@@ -65,6 +64,7 @@ namespace Emby.Naming.AudioBook
                 {
                     result.ChapterNumber = int.Parse(matches[0].Groups[0].Value);
                 }
+
                 if (matches.Count > 1)
                 {
                     result.PartNumber = int.Parse(matches[matches.Count - 1].Groups[0].Value);

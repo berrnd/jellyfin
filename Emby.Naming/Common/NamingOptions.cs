@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Linq;
@@ -137,12 +136,13 @@ namespace Emby.Naming.Common
 
             CleanDateTimes = new[]
             {
-                @"(.+[^_\,\.\(\)\[\]\-])[_\.\(\)\[\]\-](19\d{2}|20\d{2})([ _\,\.\(\)\[\]\-][^0-9]|).*(19\d{2}|20\d{2})*"
+                @"(.+[^_\,\.\(\)\[\]\-])[_\.\(\)\[\]\-](19\d{2}|20\d{2})([ _\,\.\(\)\[\]\-][^0-9]|).*(19\d{2}|20\d{2})*",
+                @"(.+[^_\,\.\(\)\[\]\-])[ _\.\(\)\[\]\-]+(19\d{2}|20\d{2})([ _\,\.\(\)\[\]\-][^0-9]|).*(19\d{2}|20\d{2})*"
             };
 
             CleanStrings = new[]
             {
-                @"[ _\,\.\(\)\[\]\-](3d|sbs|tab|hsbs|htab|mvc|HDR|HDC|UHD|UltraHD|4k|ac3|dts|custom|dc|divx|divx5|dsr|dsrip|dutch|dvd|dvdrip|dvdscr|dvdscreener|screener|dvdivx|cam|fragment|fs|hdtv|hdrip|hdtvrip|internal|limited|multisubs|ntsc|ogg|ogm|pal|pdtv|proper|repack|rerip|retail|cd[1-9]|r3|r5|bd5|se|svcd|swedish|german|read.nfo|nfofix|unrated|ws|telesync|ts|telecine|tc|brrip|bdrip|480p|480i|576p|576i|720p|720i|1080p|1080i|2160p|hrhd|hrhdtv|hddvd|bluray|x264|h264|xvid|xvidvd|xxx|www.www|\[.*\])([ _\,\.\(\)\[\]\-]|$)",
+                @"[ _\,\.\(\)\[\]\-](3d|sbs|tab|hsbs|htab|mvc|HDR|HDC|UHD|UltraHD|4k|ac3|dts|custom|dc|divx|divx5|dsr|dsrip|dutch|dvd|dvdrip|dvdscr|dvdscreener|screener|dvdivx|cam|fragment|fs|hdtv|hdrip|hdtvrip|internal|limited|multisubs|ntsc|ogg|ogm|pal|pdtv|proper|repack|rerip|retail|cd[1-9]|r3|r5|bd5|bd|se|svcd|swedish|german|read.nfo|nfofix|unrated|ws|telesync|ts|telecine|tc|brrip|bdrip|480p|480i|576p|576i|720p|720i|1080p|1080i|2160p|hrhd|hrhdtv|hddvd|bluray|x264|h264|xvid|xvidvd|xxx|www.www|\[.*\])([ _\,\.\(\)\[\]\-]|$)",
                 @"(\[.*\])"
             };
 
@@ -506,7 +506,63 @@ namespace Emby.Naming.Common
                     RuleType = ExtraRuleType.Suffix,
                     Token = "-short",
                     MediaType = MediaType.Video
-                }
+                },
+                new ExtraRule
+                {
+                    ExtraType = ExtraType.BehindTheScenes,
+                    RuleType = ExtraRuleType.DirectoryName,
+                    Token = "behind the scenes",
+                    MediaType = MediaType.Video,
+                },
+                new ExtraRule
+                {
+                    ExtraType = ExtraType.DeletedScene,
+                    RuleType = ExtraRuleType.DirectoryName,
+                    Token = "deleted scenes",
+                    MediaType = MediaType.Video,
+                },
+                new ExtraRule
+                {
+                    ExtraType = ExtraType.Interview,
+                    RuleType = ExtraRuleType.DirectoryName,
+                    Token = "interviews",
+                    MediaType = MediaType.Video,
+                },
+                new ExtraRule
+                {
+                    ExtraType = ExtraType.Scene,
+                    RuleType = ExtraRuleType.DirectoryName,
+                    Token = "scenes",
+                    MediaType = MediaType.Video,
+                },
+                new ExtraRule
+                {
+                    ExtraType = ExtraType.Sample,
+                    RuleType = ExtraRuleType.DirectoryName,
+                    Token = "samples",
+                    MediaType = MediaType.Video,
+                },
+                new ExtraRule
+                {
+                    ExtraType = ExtraType.Clip,
+                    RuleType = ExtraRuleType.DirectoryName,
+                    Token = "shorts",
+                    MediaType = MediaType.Video,
+                },
+                new ExtraRule
+                {
+                    ExtraType = ExtraType.Clip,
+                    RuleType = ExtraRuleType.DirectoryName,
+                    Token = "featurettes",
+                    MediaType = MediaType.Video,
+                },
+                new ExtraRule
+                {
+                    ExtraType = ExtraType.Unknown,
+                    RuleType = ExtraRuleType.DirectoryName,
+                    Token = "extras",
+                    MediaType = MediaType.Video,
+                },
             };
 
             Format3DRules = new[]

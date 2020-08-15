@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Data.Entities;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
@@ -14,7 +15,7 @@ using MediaBrowser.Model.Providers;
 namespace MediaBrowser.Controller.Providers
 {
     /// <summary>
-    /// Interface IProviderManager
+    /// Interface IProviderManager.
     /// </summary>
     public interface IProviderManager
     {
@@ -69,6 +70,8 @@ namespace MediaBrowser.Controller.Providers
         /// </summary>
         /// <returns>Task.</returns>
         Task SaveImage(BaseItem item, string source, string mimeType, ImageType type, int? imageIndex, bool? saveLocallyWithMedia, CancellationToken cancellationToken);
+
+        Task SaveImage(User user, Stream source, string mimeType, string path);
 
         /// <summary>
         /// Adds the metadata providers.
@@ -159,13 +162,17 @@ namespace MediaBrowser.Controller.Providers
         Dictionary<Guid, Guid> GetRefreshQueue();
 
         void OnRefreshStart(BaseItem item);
+
         void OnRefreshProgress(BaseItem item, double progress);
+
         void OnRefreshComplete(BaseItem item);
 
         double? GetRefreshProgress(Guid id);
 
         event EventHandler<GenericEventArgs<BaseItem>> RefreshStarted;
+
         event EventHandler<GenericEventArgs<BaseItem>> RefreshCompleted;
+
         event EventHandler<GenericEventArgs<Tuple<BaseItem, double>>> RefreshProgress;
     }
 

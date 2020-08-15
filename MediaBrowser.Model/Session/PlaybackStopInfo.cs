@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using MediaBrowser.Model.Dto;
@@ -62,6 +62,7 @@ namespace MediaBrowser.Model.Session
         public string NextMediaType { get; set; }
 
         public string PlaylistItemId { get; set; }
+
         public QueueItem[] NowPlayingQueue { get; set; }
     }
 }

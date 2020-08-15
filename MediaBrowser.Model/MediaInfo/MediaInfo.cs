@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -35,13 +35,21 @@ namespace MediaBrowser.Model.MediaInfo
         /// </summary>
         /// <value>The studios.</value>
         public string[] Studios { get; set; }
+
         public string[] Genres { get; set; }
+
         public string ShowName { get; set; }
+
         public int? IndexNumber { get; set; }
+
         public int? ParentIndexNumber { get; set; }
+
         public int? ProductionYear { get; set; }
+
         public DateTime? PremiereDate { get; set; }
+
         public BaseItemPerson[] People { get; set; }
+
         public Dictionary<string, string> ProviderIds { get; set; }
 
         /// <summary>
@@ -55,7 +63,7 @@ namespace MediaBrowser.Model.MediaInfo
         /// </summary>
         /// <value>The official rating description.</value>
         public string OfficialRatingDescription { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the overview.
         /// </summary>

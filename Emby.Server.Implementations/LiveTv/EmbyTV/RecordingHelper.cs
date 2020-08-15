@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Globalization;
@@ -57,7 +56,6 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
                     name += " " + info.EpisodeTitle;
                 }
             }
-
             else if (info.IsMovie && info.ProductionYear != null)
             {
                 name += " (" + info.ProductionYear + ")";

@@ -6,13 +6,11 @@ ARG DOTNET_VERSION=3.1
 
 
 FROM node:alpine as web-builder
-ARG JELLYFIN_WEB_VERSION=10.5.3
-RUN apk add curl git \
- && git clone --branch release-10.5.z --single-branch https://github.com/jellyfin/jellyfin-web.git \
- && cd jellyfin-web \
- && git checkout tags/v${JELLYFIN_WEB_VERSION} \
+ARG JELLYFIN_WEB_VERSION=master
+RUN apk add curl git zlib zlib-dev autoconf g++ make libpng-dev gifsicle alpine-sdk automake libtool make gcc musl-dev nasm python \
+ && curl -L https://github.com/jellyfin/jellyfin-web/archive/${JELLYFIN_WEB_VERSION}.tar.gz | tar zxf - \
+ && cd jellyfin-web-* \
  && yarn install \
- && yarn build \
  && mv dist /dist
 
 
@@ -36,7 +34,7 @@ ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 ENV NVIDIA_DRIVER_CAPABILITIES="compute,video,utility"
 
 COPY --from=qemu /usr/bin/qemu-aarch64-static /usr/bin
-RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \ 
+RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
  ffmpeg \
  libssl-dev \
  ca-certificates \
@@ -44,15 +42,21 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
  libfreetype6 \
  libomxil-bellagio0 \
  libomxil-bellagio-bin \
+ locales \
  && apt-get clean autoclean -y \
  && apt-get autoremove -y \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /cache /config /media \
- && chmod 777 /cache /config /media
+ && chmod 777 /cache /config /media \
+ && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
+
 COPY --from=builder /jellyfin /jellyfin
 COPY --from=web-builder /dist /jellyfin/jellyfin-web
 
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
 
 EXPOSE 8096
 VOLUME /cache /config /media

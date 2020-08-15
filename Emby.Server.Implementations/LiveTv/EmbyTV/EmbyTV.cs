@@ -1,9 +1,9 @@
-#pragma warning disable SA1600
 #pragma warning disable CS1591
 
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -26,7 +26,6 @@ using MediaBrowser.Controller.LiveTv;
 using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
-using MediaBrowser.Model.Diagnostics;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Events;
@@ -47,7 +46,7 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
         private const int TunerDiscoveryDurationMs = 3000;
 
         private readonly IServerApplicationHost _appHost;
-        private readonly ILogger _logger;
+        private readonly ILogger<EmbyTV> _logger;
         private readonly IHttpClient _httpClient;
         private readonly IServerConfigurationManager _config;
         private readonly IJsonSerializer _jsonSerializer;
@@ -62,7 +61,6 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
         private readonly ILibraryManager _libraryManager;
         private readonly IProviderManager _providerManager;
         private readonly IMediaEncoder _mediaEncoder;
-        private readonly IProcessFactory _processFactory;
         private readonly IMediaSourceManager _mediaSourceManager;
         private readonly IStreamHelper _streamHelper;
 
@@ -80,7 +78,7 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
             IServerApplicationHost appHost,
             IStreamHelper streamHelper,
             IMediaSourceManager mediaSourceManager,
-            ILogger logger,
+            ILogger<EmbyTV> logger,
             IJsonSerializer jsonSerializer,
             IHttpClient httpClient,
             IServerConfigurationManager config,
@@ -89,8 +87,7 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
             ILibraryManager libraryManager,
             ILibraryMonitor libraryMonitor,
             IProviderManager providerManager,
-            IMediaEncoder mediaEncoder,
-            IProcessFactory processFactory)
+            IMediaEncoder mediaEncoder)
         {
             Current = this;
 
@@ -103,7 +100,6 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
             _libraryMonitor = libraryMonitor;
             _providerManager = providerManager;
             _mediaEncoder = mediaEncoder;
-            _processFactory = processFactory;
             _liveTvManager = (LiveTvManager)liveTvManager;
             _jsonSerializer = jsonSerializer;
             _mediaSourceManager = mediaSourceManager;
@@ -144,11 +140,11 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
             }
         }
 
-        private void OnNamedConfigurationUpdated(object sender, ConfigurationUpdateEventArgs e)
+        private async void OnNamedConfigurationUpdated(object sender, ConfigurationUpdateEventArgs e)
         {
             if (string.Equals(e.Key, "livetv", StringComparison.OrdinalIgnoreCase))
             {
-                OnRecordingFoldersChanged();
+                await CreateRecordingFolders().ConfigureAwait(false);
             }
         }
 
@@ -157,11 +153,6 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
             _timerProvider.RestartTimers();
 
             return CreateRecordingFolders();
-        }
-
-        private async void OnRecordingFoldersChanged()
-        {
-            await CreateRecordingFolders().ConfigureAwait(false);
         }
 
         internal async Task CreateRecordingFolders()
@@ -1063,7 +1054,7 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
         {
             var stream = new MediaSourceInfo
             {
-                EncoderPath = _appHost.GetLocalApiUrl("127.0.0.1") + "/LiveTv/LiveRecordings/" + info.Id + "/stream",
+                EncoderPath = _appHost.GetLoopbackHttpApiUrl() + "/LiveTv/LiveRecordings/" + info.Id + "/stream",
                 EncoderProtocol = MediaProtocol.Http,
                 Path = info.Path,
                 Protocol = MediaProtocol.File,
@@ -1338,7 +1329,7 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
                     await CreateRecordingFolders().ConfigureAwait(false);
 
                     TriggerRefresh(recordPath);
-                    EnforceKeepUpTo(timer, seriesPath);
+                    await EnforceKeepUpTo(timer, seriesPath).ConfigureAwait(false);
                 };
 
                 await recorder.Record(directStreamProvider, mediaStreamInfo, recordPath, duration, onStarted, activeRecordingInfo.CancellationTokenSource.Token).ConfigureAwait(false);
@@ -1498,7 +1489,7 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
             return item;
         }
 
-        private async void EnforceKeepUpTo(TimerInfo timer, string seriesPath)
+        private async Task EnforceKeepUpTo(TimerInfo timer, string seriesPath)
         {
             if (string.IsNullOrWhiteSpace(timer.SeriesTimerId))
             {
@@ -1556,7 +1547,6 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
                         IsFolder = false,
                         Recursive = true,
                         DtoOptions = new DtoOptions(true)
-
                     })
                     .Where(i => i.IsFileProtocol && File.Exists(i.Path))
                     .Skip(seriesTimer.KeepUpTo - 1)
@@ -1663,7 +1653,7 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
         {
             if (mediaSource.RequiresLooping || !(mediaSource.Container ?? string.Empty).EndsWith("ts", StringComparison.OrdinalIgnoreCase) || (mediaSource.Protocol != MediaProtocol.File && mediaSource.Protocol != MediaProtocol.Http))
             {
-                return new EncodedRecorder(_logger, _mediaEncoder, _config.ApplicationPaths, _jsonSerializer, _processFactory, _config);
+                return new EncodedRecorder(_logger, _mediaEncoder, _config.ApplicationPaths, _jsonSerializer, _config);
             }
 
             return new DirectRecorder(_logger, _httpClient, _streamHelper);
@@ -1684,16 +1674,19 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
 
             try
             {
-                var process = _processFactory.Create(new ProcessOptions
+                var process = new Process
                 {
-                    Arguments = GetPostProcessArguments(path, options.RecordingPostProcessorArguments),
-                    CreateNoWindow = true,
-                    EnableRaisingEvents = true,
-                    ErrorDialog = false,
-                    FileName = options.RecordingPostProcessor,
-                    IsHidden = true,
-                    UseShellExecute = false
-                });
+                    StartInfo = new ProcessStartInfo
+                    {
+                        Arguments = GetPostProcessArguments(path, options.RecordingPostProcessorArguments),
+                        CreateNoWindow = true,
+                        ErrorDialog = false,
+                        FileName = options.RecordingPostProcessor,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        UseShellExecute = false
+                    },
+                    EnableRaisingEvents = true
+                };
 
                 _logger.LogInformation("Running recording post processor {0} {1}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
@@ -1713,11 +1706,9 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
 
         private void Process_Exited(object sender, EventArgs e)
         {
-            using (var process = (IProcess)sender)
+            using (var process = (Process)sender)
             {
                 _logger.LogInformation("Recording post-processing script completed with exit code {ExitCode}", process.ExitCode);
-
-                process.Dispose();
             }
         }
 
@@ -1901,22 +1892,22 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
                     writer.WriteStartDocument(true);
                     writer.WriteStartElement("tvshow");
                     string id;
-                    if (timer.SeriesProviderIds.TryGetValue(MetadataProviders.Tvdb.ToString(), out id))
+                    if (timer.SeriesProviderIds.TryGetValue(MetadataProvider.Tvdb.ToString(), out id))
                     {
                         writer.WriteElementString("id", id);
                     }
 
-                    if (timer.SeriesProviderIds.TryGetValue(MetadataProviders.Imdb.ToString(), out id))
+                    if (timer.SeriesProviderIds.TryGetValue(MetadataProvider.Imdb.ToString(), out id))
                     {
                         writer.WriteElementString("imdb_id", id);
                     }
 
-                    if (timer.SeriesProviderIds.TryGetValue(MetadataProviders.Tmdb.ToString(), out id))
+                    if (timer.SeriesProviderIds.TryGetValue(MetadataProvider.Tmdb.ToString(), out id))
                     {
                         writer.WriteElementString("tmdbid", id);
                     }
 
-                    if (timer.SeriesProviderIds.TryGetValue(MetadataProviders.Zap2It.ToString(), out id))
+                    if (timer.SeriesProviderIds.TryGetValue(MetadataProvider.Zap2It.ToString(), out id))
                     {
                         writer.WriteElementString("zap2itid", id);
                     }
@@ -2083,14 +2074,14 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
                         writer.WriteElementString("credits", person);
                     }
 
-                    var tmdbCollection = item.GetProviderId(MetadataProviders.TmdbCollection);
+                    var tmdbCollection = item.GetProviderId(MetadataProvider.TmdbCollection);
 
                     if (!string.IsNullOrEmpty(tmdbCollection))
                     {
                         writer.WriteElementString("collectionnumber", tmdbCollection);
                     }
 
-                    var imdb = item.GetProviderId(MetadataProviders.Imdb);
+                    var imdb = item.GetProviderId(MetadataProvider.Imdb);
                     if (!string.IsNullOrEmpty(imdb))
                     {
                         if (!isSeriesEpisode)
@@ -2104,7 +2095,7 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
                         lockData = false;
                     }
 
-                    var tvdb = item.GetProviderId(MetadataProviders.Tvdb);
+                    var tvdb = item.GetProviderId(MetadataProvider.Tvdb);
                     if (!string.IsNullOrEmpty(tvdb))
                     {
                         writer.WriteElementString("tvdbid", tvdb);
@@ -2113,7 +2104,7 @@ namespace Emby.Server.Implementations.LiveTv.EmbyTV
                         lockData = false;
                     }
 
-                    var tmdb = item.GetProviderId(MetadataProviders.Tmdb);
+                    var tmdb = item.GetProviderId(MetadataProvider.Tmdb);
                     if (!string.IsNullOrEmpty(tmdb))
                     {
                         writer.WriteElementString("tmdbid", tmdb);

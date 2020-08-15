@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System.Net;
 
@@ -8,27 +8,27 @@ namespace MediaBrowser.Model.Services
     public interface IHttpResult : IHasHeaders
     {
         /// <summary>
-        /// The HTTP Response Status
+        /// The HTTP Response Status.
         /// </summary>
         int Status { get; set; }
 
         /// <summary>
-        /// The HTTP Response Status Code
+        /// The HTTP Response Status Code.
         /// </summary>
         HttpStatusCode StatusCode { get; set; }
 
         /// <summary>
-        /// The HTTP Response ContentType
+        /// The HTTP Response ContentType.
         /// </summary>
         string ContentType { get; set; }
 
         /// <summary>
-        /// Response DTO
+        /// Response DTO.
         /// </summary>
         object Response { get; set; }
 
         /// <summary>
-        /// Holds the request call context
+        /// Holds the request call context.
         /// </summary>
         IRequest RequestContext { get; set; }
     }

@@ -1,5 +1,5 @@
+#nullable enable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.IO;
@@ -12,7 +12,7 @@ namespace Emby.Naming.Audio
     {
         public static bool IsAudioFile(string path, NamingOptions options)
         {
-            var extension = Path.GetExtension(path) ?? string.Empty;
+            var extension = Path.GetExtension(path);
             return options.AudioFileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
         }
     }

@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 
@@ -30,7 +30,7 @@ namespace MediaBrowser.Model.Querying
         /// </summary>
         /// <value>The category limit.</value>
         public int CategoryLimit { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the fields.
         /// </summary>

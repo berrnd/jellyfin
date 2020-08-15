@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Concurrent;
@@ -32,18 +31,26 @@ namespace Emby.Dlna.Eventing
         public EventSubscriptionResponse RenewEventSubscription(string subscriptionId, string notificationType, string requestedTimeoutString, string callbackUrl)
         {
             var subscription = GetSubscription(subscriptionId, false);
+            if (subscription != null)
+            {
+                subscription.TimeoutSeconds = ParseTimeout(requestedTimeoutString) ?? 300;
+                int timeoutSeconds = subscription.TimeoutSeconds;
+                subscription.SubscriptionTime = DateTime.UtcNow;
 
-            subscription.TimeoutSeconds = ParseTimeout(requestedTimeoutString) ?? 300;
-            int timeoutSeconds = subscription.TimeoutSeconds;
-            subscription.SubscriptionTime = DateTime.UtcNow;
+                _logger.LogDebug(
+                    "Renewing event subscription for {0} with timeout of {1} to {2}",
+                    subscription.NotificationType,
+                    timeoutSeconds,
+                    subscription.CallbackUrl);
 
-            _logger.LogDebug(
-                "Renewing event subscription for {0} with timeout of {1} to {2}",
-                subscription.NotificationType,
-                timeoutSeconds,
-                subscription.CallbackUrl);
+                return GetEventSubscriptionResponse(subscriptionId, requestedTimeoutString, timeoutSeconds);
+            }
 
-            return GetEventSubscriptionResponse(subscriptionId, requestedTimeoutString, timeoutSeconds);
+            return new EventSubscriptionResponse
+            {
+                Content = string.Empty,
+                ContentType = "text/plain"
+            };
         }
 
         public EventSubscriptionResponse CreateEventSubscription(string notificationType, string requestedTimeoutString, string callbackUrl)
@@ -151,6 +158,7 @@ namespace Emby.Dlna.Eventing
                 builder.Append("</" + key + ">");
                 builder.Append("</e:property>");
             }
+
             builder.Append("</e:propertyset>");
 
             var options = new HttpRequestOptions
@@ -170,7 +178,6 @@ namespace Emby.Dlna.Eventing
             {
                 using (await _httpClient.SendAsync(options, new HttpMethod("NOTIFY")).ConfigureAwait(false))
                 {
-
                 }
             }
             catch (OperationCanceledException)

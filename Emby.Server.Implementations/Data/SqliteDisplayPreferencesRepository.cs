@@ -1,5 +1,4 @@
-#pragma warning disable CS1591
-#pragma warning disable SA1600
+﻿#pragma warning disable CS1591
 
 using System;
 using System.Collections.Generic;
@@ -60,7 +59,7 @@ namespace Emby.Server.Implementations.Data
         }
 
         /// <summary>
-        /// Opens the connection to the database
+        /// Opens the connection to the database.
         /// </summary>
         /// <returns>Task.</returns>
         private void InitializeInternal()
@@ -78,7 +77,7 @@ namespace Emby.Server.Implementations.Data
         }
 
         /// <summary>
-        /// Save the display preferences associated with an item in the repo
+        /// Save the display preferences associated with an item in the repo.
         /// </summary>
         /// <param name="displayPreferences">The display preferences.</param>
         /// <param name="userId">The user id.</param>
@@ -123,7 +122,7 @@ namespace Emby.Server.Implementations.Data
         }
 
         /// <summary>
-        /// Save all display preferences associated with a user in the repo
+        /// Save all display preferences associated with a user in the repo.
         /// </summary>
         /// <param name="displayPreferences">The display preferences.</param>
         /// <param name="userId">The user id.</param>

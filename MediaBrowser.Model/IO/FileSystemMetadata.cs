@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 
@@ -54,7 +54,7 @@ namespace MediaBrowser.Model.IO
         /// </summary>
         /// <value>The creation time UTC.</value>
         public DateTime CreationTimeUtc { get; set; }
-        
+
         /// <summary>
         /// Gets a value indicating whether this instance is directory.
         /// </summary>

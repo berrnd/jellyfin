@@ -1,6 +1,5 @@
 #pragma warning disable CS1591
 #pragma warning disable SA1402
-#pragma warning disable SA1600
 #pragma warning disable SA1649
 
 using System;
@@ -9,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Controller.Notifications;
@@ -135,24 +135,22 @@ namespace Emby.Notifications.Api
             _userManager = userManager;
         }
 
-        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request")]
+        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request", Justification = "Required for ServiceStack")]
         public object Get(GetNotificationTypes request)
         {
             return _notificationManager.GetNotificationTypes();
         }
 
-        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request")]
+        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request", Justification = "Required for ServiceStack")]
         public object Get(GetNotificationServices request)
         {
             return _notificationManager.GetNotificationServices().ToList();
         }
 
-        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request")]
+        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request", Justification = "Required for ServiceStack")]
         public object Get(GetNotificationsSummary request)
         {
-            return new NotificationsSummary
-            {
-            };
+            return new NotificationsSummary();
         }
 
         public Task Post(AddAdminNotification request)
@@ -165,23 +163,26 @@ namespace Emby.Notifications.Api
                 Level = request.Level,
                 Name = request.Name,
                 Url = request.Url,
-                UserIds = _userManager.Users.Where(i => i.Policy.IsAdministrator).Select(i => i.Id).ToArray()
+                UserIds = _userManager.Users
+                    .Where(user => user.HasPermission(PermissionKind.IsAdministrator))
+                    .Select(user => user.Id)
+                    .ToArray()
             };
 
             return _notificationManager.SendNotification(notification, CancellationToken.None);
         }
 
-        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request")]
+        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request", Justification = "Required for ServiceStack")]
         public void Post(MarkRead request)
         {
         }
 
-        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request")]
+        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request", Justification = "Required for ServiceStack")]
         public void Post(MarkUnread request)
         {
         }
 
-        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request")]
+        [SuppressMessage("Microsoft.Performance", "CA1801:ReviewUnusedParameters", MessageId = "request", Justification = "Required for ServiceStack")]
         public object Get(GetNotifications request)
         {
             return new NotificationResult();

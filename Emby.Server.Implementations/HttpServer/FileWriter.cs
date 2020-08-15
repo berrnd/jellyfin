@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -12,8 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Services;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 
 namespace Emby.Server.Implementations.HttpServer
@@ -33,12 +32,12 @@ namespace Emby.Server.Implementations.HttpServer
         private readonly IFileSystem _fileSystem;
 
         /// <summary>
-        /// The _options
+        /// The _options.
         /// </summary>
         private readonly IDictionary<string, string> _options = new Dictionary<string, string>();
 
         /// <summary>
-        /// The _requested ranges
+        /// The _requested ranges.
         /// </summary>
         private List<KeyValuePair<long, long?>> _requestedRanges;
 

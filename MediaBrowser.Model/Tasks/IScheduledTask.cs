@@ -1,6 +1,3 @@
-#pragma warning disable CS1591
-#pragma warning disable SA1600
-
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -9,16 +6,19 @@ using System.Threading.Tasks;
 namespace MediaBrowser.Model.Tasks
 {
     /// <summary>
-    /// Interface IScheduledTaskWorker
+    /// Interface IScheduledTaskWorker.
     /// </summary>
     public interface IScheduledTask
     {
         /// <summary>
-        /// Gets the name of the task
+        /// Gets the name of the task.
         /// </summary>
         /// <value>The name.</value>
         string Name { get; }
 
+        /// <summary>
+        /// Gets the key of the task.
+        /// </summary>
         string Key { get; }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace MediaBrowser.Model.Tasks
         string Category { get; }
 
         /// <summary>
-        /// Executes the task
+        /// Executes the task.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="progress">The progress.</param>

@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using MediaBrowser.Model.Plugins;
@@ -40,6 +39,11 @@ namespace MediaBrowser.Common.Plugins
         /// </summary>
         /// <value>The assembly file path.</value>
         string AssemblyFilePath { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the plugin can be uninstalled.
+        /// </summary>
+        bool CanUninstall { get; }
 
         /// <summary>
         /// Gets the full path to the data folder, where the plugin can store any miscellaneous files needed.

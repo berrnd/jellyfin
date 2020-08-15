@@ -1,3 +1,5 @@
+#pragma warning disable CS1591
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +11,7 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Providers.Manager;
-using MediaBrowser.Providers.TV.TheTVDB;
+using MediaBrowser.Providers.Plugins.TheTvdb;
 using Microsoft.Extensions.Logging;
 
 namespace MediaBrowser.Providers.TV
@@ -17,20 +19,20 @@ namespace MediaBrowser.Providers.TV
     public class SeriesMetadataService : MetadataService<Series, SeriesInfo>
     {
         private readonly ILocalizationManager _localization;
-        private readonly TvDbClientManager _tvDbClientManager;
+        private readonly TvdbClientManager _tvdbClientManager;
 
         public SeriesMetadataService(
             IServerConfigurationManager serverConfigurationManager,
-            ILogger logger,
+            ILogger<SeriesMetadataService> logger,
             IProviderManager providerManager,
             IFileSystem fileSystem,
             ILibraryManager libraryManager,
             ILocalizationManager localization,
-            TvDbClientManager tvDbClientManager)
+            TvdbClientManager tvdbClientManager)
             : base(serverConfigurationManager, logger, providerManager, fileSystem, libraryManager)
         {
             _localization = localization;
-            _tvDbClientManager = tvDbClientManager;
+            _tvdbClientManager = tvdbClientManager;
         }
 
         /// <inheritdoc />
@@ -42,12 +44,13 @@ namespace MediaBrowser.Providers.TV
             await seasonProvider.Run(item, cancellationToken).ConfigureAwait(false);
 
             // TODO why does it not register this itself omg
-            var provider = new MissingEpisodeProvider(Logger,
+            var provider = new MissingEpisodeProvider(
+                Logger,
                 ServerConfigurationManager,
                 LibraryManager,
                 _localization,
                 FileSystem,
-                _tvDbClientManager);
+                _tvdbClientManager);
 
             try
             {
@@ -66,15 +69,17 @@ namespace MediaBrowser.Providers.TV
             {
                 return false;
             }
+
             if (!item.ProductionYear.HasValue)
             {
                 return false;
             }
+
             return base.IsFullLocalMetadata(item);
         }
 
         /// <inheritdoc />
-        protected override void MergeData(MetadataResult<Series> source, MetadataResult<Series> target, MetadataFields[] lockedFields, bool replaceData, bool mergeMetadataSettings)
+        protected override void MergeData(MetadataResult<Series> source, MetadataResult<Series> target, MetadataField[] lockedFields, bool replaceData, bool mergeMetadataSettings)
         {
             ProviderUtils.MergeBaseItemData(source, target, lockedFields, replaceData, mergeMetadataSettings);
 

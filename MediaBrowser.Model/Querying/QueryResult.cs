@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace MediaBrowser.Model.Querying
         public IReadOnlyList<T> Items { get; set; }
 
         /// <summary>
-        /// The total number of records available
+        /// The total number of records available.
         /// </summary>
         /// <value>The total record count.</value>
         public int TotalRecordCount { get; set; }

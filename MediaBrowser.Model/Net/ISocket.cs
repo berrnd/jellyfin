@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Net;
@@ -18,6 +17,7 @@ namespace MediaBrowser.Model.Net
         Task<SocketReceiveResult> ReceiveAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken);
 
         IAsyncResult BeginReceive(byte[] buffer, int offset, int count, AsyncCallback callback);
+
         SocketReceiveResult EndReceive(IAsyncResult result);
 
         /// <summary>

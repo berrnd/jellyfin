@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Globalization;
@@ -13,7 +12,7 @@ namespace Emby.Server.Implementations.Devices
     public class DeviceId
     {
         private readonly IApplicationPaths _appPaths;
-        private readonly ILogger _logger;
+        private readonly ILogger<DeviceId> _logger;
 
         private readonly object _syncLock = new object();
 
@@ -91,7 +90,7 @@ namespace Emby.Server.Implementations.Devices
         public DeviceId(IApplicationPaths appPaths, ILoggerFactory loggerFactory)
         {
             _appPaths = appPaths;
-            _logger = loggerFactory.CreateLogger("SystemId");
+            _logger = loggerFactory.CreateLogger<DeviceId>();
         }
 
         public string Value => _id ?? (_id = GetDeviceId());

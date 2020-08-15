@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 namespace MediaBrowser.Model.Configuration
 {
@@ -10,6 +10,7 @@ namespace MediaBrowser.Model.Configuration
         public string ReleaseDateFormat { get; set; }
 
         public bool SaveImagePathsInNfo { get; set; }
+
         public bool EnablePathSubstitution { get; set; }
 
         public bool EnableExtraThumbsDuplication { get; set; }

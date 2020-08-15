@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -24,7 +23,7 @@ namespace Emby.Server.Implementations.LiveTv
         private const string StreamIdDelimeterString = "_";
 
         private readonly ILiveTvManager _liveTvManager;
-        private readonly ILogger _logger;
+        private readonly ILogger<LiveTvMediaSourceProvider> _logger;
         private readonly IMediaSourceManager _mediaSourceManager;
         private readonly IServerApplicationHost _appHost;
 

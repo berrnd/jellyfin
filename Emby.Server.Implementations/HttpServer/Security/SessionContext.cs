@@ -1,8 +1,7 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
-using MediaBrowser.Controller.Entities;
+using Jellyfin.Data.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Controller.Security;

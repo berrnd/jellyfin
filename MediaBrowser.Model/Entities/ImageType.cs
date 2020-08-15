@@ -44,6 +44,7 @@ namespace MediaBrowser.Model.Entities
         /// The box.
         /// </summary>
         Box = 7,
+
         /// <summary>
         /// The screenshot.
         /// </summary>
@@ -62,6 +63,11 @@ namespace MediaBrowser.Model.Entities
         /// <summary>
         /// The box rear.
         /// </summary>
-        BoxRear = 11
+        BoxRear = 11,
+
+        /// <summary>
+        /// The user profile image.
+        /// </summary>
+        Profile = 12
     }
 }

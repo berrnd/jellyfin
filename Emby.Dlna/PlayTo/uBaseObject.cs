@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 
@@ -45,10 +44,12 @@ namespace Emby.Dlna.PlayTo
                 {
                     return MediaBrowser.Model.Entities.MediaType.Audio;
                 }
+
                 if (classType.IndexOf(MediaBrowser.Model.Entities.MediaType.Video, StringComparison.Ordinal) != -1)
                 {
                     return MediaBrowser.Model.Entities.MediaType.Video;
                 }
+
                 if (classType.IndexOf("image", StringComparison.Ordinal) != -1)
                 {
                     return MediaBrowser.Model.Entities.MediaType.Photo;

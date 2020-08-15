@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.IO;
@@ -293,7 +292,7 @@ namespace Emby.Server.Implementations.Library.Resolvers
             }
 
             return true;
-            //var blurayExtensions = new[]
+            // var blurayExtensions = new[]
             //{
             //    ".mts",
             //    ".m2ts",
@@ -301,7 +300,7 @@ namespace Emby.Server.Implementations.Library.Resolvers
             //    ".mpls"
             //};
 
-            //return directoryService.GetFiles(fullPath).Any(i => blurayExtensions.Contains(i.Extension ?? string.Empty, StringComparer.OrdinalIgnoreCase));
+            // return directoryService.GetFiles(fullPath).Any(i => blurayExtensions.Contains(i.Extension ?? string.Empty, StringComparer.OrdinalIgnoreCase));
         }
     }
 }

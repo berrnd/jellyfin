@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -210,8 +209,8 @@ namespace Emby.Server.Implementations.Library.Resolvers.Audio
                     Name = parseName ?
                         resolvedItem.Name :
                         Path.GetFileNameWithoutExtension(firstMedia.Path),
-                    //AdditionalParts = resolvedItem.Files.Skip(1).Select(i => i.Path).ToArray(),
-                    //LocalAlternateVersions = resolvedItem.AlternateVersions.Select(i => i.Path).ToArray()
+                    // AdditionalParts = resolvedItem.Files.Skip(1).Select(i => i.Path).ToArray(),
+                    // LocalAlternateVersions = resolvedItem.AlternateVersions.Select(i => i.Path).ToArray()
                 };
 
                 result.Items.Add(libraryItem);

@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Globalization;
@@ -24,7 +23,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Emby.Dlna.PlayTo
 {
-    public class PlayToManager : IDisposable
+    public sealed class PlayToManager : IDisposable
     {
         private readonly ILogger _logger;
         private readonly ISessionManager _sessionManager;
@@ -79,9 +78,15 @@ namespace Emby.Dlna.PlayTo
 
             var info = e.Argument;
 
-            if (!info.Headers.TryGetValue("USN", out string usn)) usn = string.Empty;
+            if (!info.Headers.TryGetValue("USN", out string usn))
+            {
+                usn = string.Empty;
+            }
 
-            if (!info.Headers.TryGetValue("NT", out string nt)) nt = string.Empty;
+            if (!info.Headers.TryGetValue("NT", out string nt))
+            {
+                nt = string.Empty;
+            }
 
             string location = info.Location.ToString();
 
@@ -89,7 +94,7 @@ namespace Emby.Dlna.PlayTo
             if (usn.IndexOf("MediaRenderer:", StringComparison.OrdinalIgnoreCase) == -1 &&
                      nt.IndexOf("MediaRenderer:", StringComparison.OrdinalIgnoreCase) == -1)
             {
-                //_logger.LogDebug("Upnp device {0} does not contain a MediaRenderer device (0).", location);
+                // _logger.LogDebug("Upnp device {0} does not contain a MediaRenderer device (0).", location);
                 return;
             }
 
@@ -113,7 +118,6 @@ namespace Emby.Dlna.PlayTo
             }
             catch (OperationCanceledException)
             {
-
             }
             catch (Exception ex)
             {
@@ -134,6 +138,7 @@ namespace Emby.Dlna.PlayTo
                 usn = usn.Substring(index);
                 found = true;
             }
+
             index = usn.IndexOf("::", StringComparison.OrdinalIgnoreCase);
             if (index != -1)
             {
@@ -185,7 +190,8 @@ namespace Emby.Dlna.PlayTo
                     serverAddress = _appHost.GetLocalApiUrl(info.LocalIpAddress);
                 }
 
-                controller = new PlayToController(sessionInfo,
+                controller = new PlayToController(
+                    sessionInfo,
                    _sessionManager,
                    _libraryManager,
                    _logger,
@@ -232,6 +238,7 @@ namespace Emby.Dlna.PlayTo
             }
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             _deviceDiscovery.DeviceDiscovered -= OnDeviceDiscoveryDeviceDiscovered;
@@ -242,8 +249,10 @@ namespace Emby.Dlna.PlayTo
             }
             catch
             {
-
             }
+
+            _sessionLock.Dispose();
+            _disposeCancellationTokenSource.Dispose();
 
             _disposed = true;
         }

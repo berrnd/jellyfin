@@ -1,14 +1,15 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Emby.Dlna.Service;
+using Jellyfin.Data.Entities;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Dlna;
 using MediaBrowser.Controller.Drawing;
-using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.Controller.TV;
@@ -32,13 +33,14 @@ namespace Emby.Dlna.ContentDirectory
         private readonly IMediaEncoder _mediaEncoder;
         private readonly ITVSeriesManager _tvSeriesManager;
 
-        public ContentDirectory(IDlnaManager dlna,
+        public ContentDirectory(
+            IDlnaManager dlna,
             IUserDataManager userDataManager,
             IImageProcessor imageProcessor,
             ILibraryManager libraryManager,
             IServerConfigurationManager config,
             IUserManager userManager,
-            ILogger logger,
+            ILogger<ContentDirectory> logger,
             IHttpClient httpClient,
             ILocalizationManager localization,
             IMediaSourceManager mediaSourceManager,
@@ -131,18 +133,13 @@ namespace Emby.Dlna.ContentDirectory
 
             foreach (var user in _userManager.Users)
             {
-                if (user.Policy.IsAdministrator)
+                if (user.HasPermission(PermissionKind.IsAdministrator))
                 {
                     return user;
                 }
             }
 
-            foreach (var user in _userManager.Users)
-            {
-                return user;
-            }
-
-            return null;
+            return _userManager.Users.FirstOrDefault();
         }
     }
 }

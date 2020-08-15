@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Text.RegularExpressions;
@@ -24,11 +23,6 @@ namespace Emby.Naming.Common
         {
         }
 
-        public EpisodeExpression()
-            : this(null)
-        {
-        }
-
         public string Expression
         {
             get => _expression;
@@ -49,6 +43,6 @@ namespace Emby.Naming.Common
 
         public string[] DateTimeFormats { get; set; }
 
-        public Regex Regex => _regex ?? (_regex = new Regex(Expression, RegexOptions.IgnoreCase | RegexOptions.Compiled));
+        public Regex Regex => _regex ??= new Regex(Expression, RegexOptions.IgnoreCase | RegexOptions.Compiled);
     }
 }

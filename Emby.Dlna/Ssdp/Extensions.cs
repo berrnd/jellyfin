@@ -1,6 +1,6 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
+using System.Linq;
 using System.Xml.Linq;
 
 namespace Emby.Dlna.Ssdp
@@ -11,24 +11,17 @@ namespace Emby.Dlna.Ssdp
         {
             var node = container.Element(name);
 
-            return node == null ? null : node.Value;
+            return node?.Value;
         }
 
         public static string GetAttributeValue(this XElement container, XName name)
         {
             var node = container.Attribute(name);
 
-            return node == null ? null : node.Value;
+            return node?.Value;
         }
 
         public static string GetDescendantValue(this XElement container, XName name)
-        {
-            foreach (var node in container.Descendants(name))
-            {
-                return node.Value;
-            }
-
-            return null;
-        }
+            => container.Descendants(name).FirstOrDefault()?.Value;
     }
 }

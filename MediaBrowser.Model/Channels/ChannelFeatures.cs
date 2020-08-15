@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 
@@ -38,7 +38,7 @@ namespace MediaBrowser.Model.Channels
         public ChannelMediaContentType[] ContentTypes { get; set; }
 
         /// <summary>
-        /// Represents the maximum number of records the channel allows retrieving at a time
+        /// Represents the maximum number of records the channel allows retrieving at a time.
         /// </summary>
         public int? MaxPageSize { get; set; }
 

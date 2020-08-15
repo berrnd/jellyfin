@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -135,6 +134,7 @@ namespace Emby.Dlna.Server
                     return result;
                 }
             }
+
             return c.ToString(CultureInfo.InvariantCulture);
         }
 
@@ -158,18 +158,22 @@ namespace Emby.Dlna.Server
                 {
                     break;
                 }
+
                 if (stringBuilder == null)
                 {
                     stringBuilder = new StringBuilder();
                 }
+
                 stringBuilder.Append(str, num, num2 - num);
                 stringBuilder.Append(GetEscapeSequence(str[num2]));
                 num = num2 + 1;
             }
+
             if (stringBuilder == null)
             {
                 return str;
             }
+
             stringBuilder.Append(str, num, length - num);
             return stringBuilder.ToString();
         }

@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using MediaBrowser.Model.Session;
@@ -12,7 +12,7 @@ namespace MediaBrowser.Model.Devices
         {
             Capabilities = new ClientCapabilities();
         }
-        
+
         public string Name { get; set; }
 
         /// <summary>

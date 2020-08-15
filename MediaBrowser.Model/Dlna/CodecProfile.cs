@@ -1,9 +1,9 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
+using System.Linq;
 using System.Xml.Serialization;
-using MediaBrowser.Model.Extensions;
 
 namespace MediaBrowser.Model.Dlna
 {
@@ -58,7 +58,7 @@ namespace MediaBrowser.Model.Dlna
 
             foreach (var val in codec)
             {
-                if (ListHelper.ContainsIgnoreCase(codecs, val))
+                if (codecs.Contains(val, StringComparer.OrdinalIgnoreCase))
                 {
                     return true;
                 }

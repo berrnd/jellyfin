@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -27,14 +26,14 @@ namespace Emby.Server.Implementations.LiveTv.Listings
     {
         private readonly IServerConfigurationManager _config;
         private readonly IHttpClient _httpClient;
-        private readonly ILogger _logger;
+        private readonly ILogger<XmlTvListingsProvider> _logger;
         private readonly IFileSystem _fileSystem;
         private readonly IZipClient _zipClient;
 
         public XmlTvListingsProvider(
             IServerConfigurationManager config,
             IHttpClient httpClient,
-            ILogger logger,
+            ILogger<XmlTvListingsProvider> logger,
             IFileSystem fileSystem,
             IZipClient zipClient)
         {
@@ -84,7 +83,7 @@ namespace Emby.Server.Implementations.LiveTv.Listings
                 {
                     CancellationToken = cancellationToken,
                     Url = path,
-                    DecompressionMethod = CompressionMethod.Gzip,
+                    DecompressionMethod = CompressionMethods.Gzip,
                 },
                 HttpMethod.Get).ConfigureAwait(false))
             using (var stream = res.Content)
@@ -225,6 +224,7 @@ namespace Emby.Server.Implementations.LiveTv.Listings
                 {
                     uniqueString = "-" + programInfo.SeasonNumber.Value.ToString(CultureInfo.InvariantCulture);
                 }
+
                 if (programInfo.EpisodeNumber.HasValue)
                 {
                     uniqueString = "-" + programInfo.EpisodeNumber.Value.ToString(CultureInfo.InvariantCulture);

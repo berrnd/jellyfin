@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System.Xml.Serialization;
 
@@ -7,6 +7,24 @@ namespace MediaBrowser.Model.Dlna
 {
     public class ProfileCondition
     {
+        public ProfileCondition()
+        {
+            IsRequired = true;
+        }
+
+        public ProfileCondition(ProfileConditionType condition, ProfileConditionValue property, string value)
+            : this(condition, property, value, false)
+        {
+        }
+
+        public ProfileCondition(ProfileConditionType condition, ProfileConditionValue property, string value, bool isRequired)
+        {
+            Condition = condition;
+            Property = property;
+            Value = value;
+            IsRequired = isRequired;
+        }
+
         [XmlAttribute("condition")]
         public ProfileConditionType Condition { get; set; }
 
@@ -18,24 +36,5 @@ namespace MediaBrowser.Model.Dlna
 
         [XmlAttribute("isRequired")]
         public bool IsRequired { get; set; }
-
-        public ProfileCondition()
-        {
-            IsRequired = true;
-        }
-
-        public ProfileCondition(ProfileConditionType condition, ProfileConditionValue property, string value)
-            : this(condition, property, value, false)
-        {
-
-        }
-
-        public ProfileCondition(ProfileConditionType condition, ProfileConditionValue property, string value, bool isRequired)
-        {
-            Condition = condition;
-            Property = property;
-            Value = value;
-            IsRequired = isRequired;
-        }
     }
 }

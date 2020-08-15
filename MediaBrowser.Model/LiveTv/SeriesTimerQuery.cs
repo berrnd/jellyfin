@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using MediaBrowser.Model.Entities;
 
@@ -8,10 +7,10 @@ namespace MediaBrowser.Model.LiveTv
     public class SeriesTimerQuery
     {
         /// <summary>
-        /// Gets or sets the sort by - SortName, Priority
+        /// Gets or sets the sort by - SortName, Priority.
         /// </summary>
         /// <value>The sort by.</value>
-        public string SortBy { get; set; }
+        public string? SortBy { get; set; }
 
         /// <summary>
         /// Gets or sets the sort order.

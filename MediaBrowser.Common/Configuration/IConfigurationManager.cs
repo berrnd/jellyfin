@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -25,7 +24,7 @@ namespace MediaBrowser.Common.Configuration
         event EventHandler<ConfigurationUpdateEventArgs> NamedConfigurationUpdated;
 
         /// <summary>
-        /// Gets or sets the application paths.
+        /// Gets the application paths.
         /// </summary>
         /// <value>The application paths.</value>
         IApplicationPaths CommonApplicationPaths { get; }

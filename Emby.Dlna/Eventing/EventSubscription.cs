@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 
@@ -8,10 +7,13 @@ namespace Emby.Dlna.Eventing
     public class EventSubscription
     {
         public string Id { get; set; }
+
         public string CallbackUrl { get; set; }
+
         public string NotificationType { get; set; }
 
         public DateTime SubscriptionTime { get; set; }
+
         public int TimeoutSeconds { get; set; }
 
         public long TriggerCount { get; set; }

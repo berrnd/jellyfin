@@ -1,22 +1,21 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 namespace Emby.Naming.Common
 {
     public enum MediaType
     {
         /// <summary>
-        /// The audio
+        /// The audio.
         /// </summary>
         Audio = 0,
 
         /// <summary>
-        /// The photo
+        /// The photo.
         /// </summary>
         Photo = 1,
 
         /// <summary>
-        /// The video
+        /// The video.
         /// </summary>
         Video = 2
     }

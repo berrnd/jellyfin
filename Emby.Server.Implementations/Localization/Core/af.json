@@ -4,7 +4,7 @@
     "Folders": "Fouers",
     "Favorites": "Gunstelinge",
     "HeaderFavoriteShows": "Gunsteling Vertonings",
-    "ValueSpecialEpisodeName": "Spesiaal - {0}",
+    "ValueSpecialEpisodeName": "Spesiale - {0}",
     "HeaderAlbumArtists": "Album Kunstenaars",
     "Books": "Boeke",
     "HeaderNextUp": "Volgende",
@@ -19,8 +19,8 @@
     "Sync": "Sinkroniseer",
     "HeaderFavoriteSongs": "Gunsteling Liedjies",
     "Songs": "Liedjies",
-    "DeviceOnlineWithName": "{0} is verbind",
-    "DeviceOfflineWithName": "{0} het afgesluit",
+    "DeviceOnlineWithName": "{0} gekoppel is",
+    "DeviceOfflineWithName": "{0} is ontkoppel",
     "Collections": "Versamelings",
     "Inherit": "Ontvang",
     "HeaderLiveTV": "Live TV",
@@ -41,7 +41,6 @@
     "User": "Gebruiker",
     "TvShows": "TV Programme",
     "System": "Stelsel",
-    "SubtitlesDownloadedForItem": "Ondertitels afgelaai vir {0}",
     "SubtitleDownloadFailureFromForItem": "Ondertitels het misluk om af te laai van {0} vir {1}",
     "StartupEmbyServerIsLoading": "Jellyfin Bediener is besig om te laai. Probeer weer in 'n kort tyd.",
     "ServerNameNeedsToBeRestarted": "{0} moet herbegin word",
@@ -92,5 +91,9 @@
     "ChapterNameValue": "Hoofstuk",
     "CameraImageUploadedFrom": "'n Nuwe kamera photo opgelaai van {0}",
     "AuthenticationSucceededWithUserName": "{0} suksesvol geverifieer",
-    "Albums": "Albums"
+    "Albums": "Albums",
+    "TasksChannelsCategory": "Internet kanale",
+    "TasksApplicationCategory": "aansoek",
+    "TasksLibraryCategory": "biblioteek",
+    "TasksMaintenanceCategory": "onderhoud"
 }

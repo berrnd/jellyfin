@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using MediaBrowser.Model.Entities;
 
@@ -7,7 +6,12 @@ namespace MediaBrowser.Model.Providers
 {
     public class RemoteImageQuery
     {
-        public string ProviderName { get; set; }
+        public RemoteImageQuery(string providerName)
+        {
+            ProviderName = providerName;
+        }
+
+        public string ProviderName { get; }
 
         public ImageType? ImageType { get; set; }
 

@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 
@@ -7,6 +6,12 @@ namespace MediaBrowser.Model.Library
 {
     public class UserViewQuery
     {
+        public UserViewQuery()
+        {
+            IncludeExternalContent = true;
+            PresetViews = Array.Empty<string>();
+        }
+
         /// <summary>
         /// Gets or sets the user identifier.
         /// </summary>
@@ -26,11 +31,5 @@ namespace MediaBrowser.Model.Library
         public bool IncludeHidden { get; set; }
 
         public string[] PresetViews { get; set; }
-
-        public UserViewQuery()
-        {
-            IncludeExternalContent = true;
-            PresetViews = Array.Empty<string>();
-        }
     }
 }

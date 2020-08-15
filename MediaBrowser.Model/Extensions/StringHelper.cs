@@ -12,9 +12,9 @@ namespace MediaBrowser.Model.Extensions
         /// <returns>The string with the first character as uppercase.</returns>
         public static string FirstToUpper(string str)
         {
-            if (string.IsNullOrEmpty(str))
+            if (str.Length == 0)
             {
-                return string.Empty;
+                return str;
             }
 
             if (char.IsUpper(str[0]))
@@ -22,6 +22,11 @@ namespace MediaBrowser.Model.Extensions
                 return str;
             }
 
+#if NETSTANDARD2_0
+            char[] a = str.ToCharArray();
+            a[0] = char.ToUpperInvariant(a[0]);
+            return new string(a);
+#else
             return string.Create(
                 str.Length,
                 str,
@@ -33,6 +38,7 @@ namespace MediaBrowser.Model.Extensions
                         chars[i] = buf[i];
                     }
                 });
+#endif
         }
     }
 }

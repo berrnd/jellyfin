@@ -7,6 +7,7 @@
  - [anthonylavado](https://github.com/anthonylavado)
  - [Artiume](https://github.com/Artiume)
  - [AThomsen](https://github.com/AThomsen)
+ - [barronpm](https://github.com/barronpm)
  - [bilde2910](https://github.com/bilde2910)
  - [bfayers](https://github.com/bfayers)
  - [BnMcG](https://github.com/BnMcG)
@@ -22,6 +23,7 @@
  - [cvium](https://github.com/cvium)
  - [dannymichel](https://github.com/dannymichel)
  - [DaveChild](https://github.com/DaveChild)
+ - [Delgan](https://github.com/Delgan)
  - [dcrdev](https://github.com/dcrdev)
  - [dhartung](https://github.com/dhartung)
  - [dinki](https://github.com/dinki)
@@ -91,6 +93,7 @@
  - [samuel9554](https://github.com/samuel9554)
  - [scheidleon](https://github.com/scheidleon)
  - [sebPomme](https://github.com/sebPomme)
+ - [SegiH](https://github.com/SegiH)
  - [SenorSmartyPants](https://github.com/SenorSmartyPants)
  - [shemanaev](https://github.com/shemanaev)
  - [skaro13](https://github.com/skaro13)
@@ -127,6 +130,8 @@
  - [xosdy](https://github.com/xosdy)
  - [XVicarious](https://github.com/XVicarious)
  - [YouKnowBlom](https://github.com/YouKnowBlom)
+ - [KristupasSavickas](https://github.com/KristupasSavickas)
+ - [Pusta](https://github.com/pusta)
 
 # Emby Contributors
 

@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using Microsoft.Extensions.Logging;
@@ -60,6 +60,7 @@ namespace MediaBrowser.Model.Activity
         /// Gets or sets the user primary image tag.
         /// </summary>
         /// <value>The user primary image tag.</value>
+        [Obsolete("UserPrimaryImageTag is not used.")]
         public string UserPrimaryImageTag { get; set; }
 
         /// <summary>

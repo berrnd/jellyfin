@@ -1,5 +1,4 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 using System;
 using System.Collections.Generic;
@@ -51,7 +50,7 @@ namespace Emby.Server.Implementations.Library
                 {
                     mediaInfo = _json.DeserializeFromFile<MediaInfo>(cacheFilePath);
 
-                    //_logger.LogDebug("Found cached media info");
+                    // _logger.LogDebug("Found cached media info");
                 }
                 catch
                 {
@@ -86,7 +85,7 @@ namespace Emby.Server.Implementations.Library
                     Directory.CreateDirectory(Path.GetDirectoryName(cacheFilePath));
                     _json.SerializeToFile(mediaInfo, cacheFilePath);
 
-                    //_logger.LogDebug("Saved media info to {0}", cacheFilePath);
+                    // _logger.LogDebug("Saved media info to {0}", cacheFilePath);
                 }
             }
 
@@ -149,17 +148,14 @@ namespace Emby.Server.Implementations.Library
                     {
                         videoStream.BitRate = 30000000;
                     }
-
                     else if (width >= 1900)
                     {
                         videoStream.BitRate = 20000000;
                     }
-
                     else if (width >= 1200)
                     {
                         videoStream.BitRate = 8000000;
                     }
-
                     else if (width >= 700)
                     {
                         videoStream.BitRate = 2000000;

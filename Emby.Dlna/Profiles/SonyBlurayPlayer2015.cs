@@ -1,6 +1,6 @@
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
+using System;
 using MediaBrowser.Model.Dlna;
 
 namespace Emby.Dlna.Profiles
@@ -212,7 +212,7 @@ namespace Emby.Dlna.Profiles
                 }
             };
 
-            ResponseProfiles = new ResponseProfile[] { };
+            ResponseProfiles = Array.Empty<ResponseProfile>();
         }
     }
 }

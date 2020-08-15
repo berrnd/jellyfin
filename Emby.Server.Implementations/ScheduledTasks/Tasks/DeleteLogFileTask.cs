@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Tasks;
+using MediaBrowser.Model.Globalization;
 
 namespace Emby.Server.Implementations.ScheduledTasks.Tasks
 {
@@ -21,15 +22,19 @@ namespace Emby.Server.Implementations.ScheduledTasks.Tasks
         private IConfigurationManager ConfigurationManager { get; set; }
 
         private readonly IFileSystem _fileSystem;
+        private readonly ILocalizationManager _localization;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeleteLogFileTask" /> class.
         /// </summary>
         /// <param name="configurationManager">The configuration manager.</param>
-        public DeleteLogFileTask(IConfigurationManager configurationManager, IFileSystem fileSystem)
+        /// <param name="fileSystem">The file system.</param>
+        /// <param name="localization">The localization manager.</param>
+        public DeleteLogFileTask(IConfigurationManager configurationManager, IFileSystem fileSystem, ILocalizationManager localization)
         {
             ConfigurationManager = configurationManager;
             _fileSystem = fileSystem;
+            _localization = localization;
         }
 
         /// <summary>
@@ -79,18 +84,25 @@ namespace Emby.Server.Implementations.ScheduledTasks.Tasks
             return Task.CompletedTask;
         }
 
-        public string Name => "Clean Log Directory";
+        /// <inheritdoc />
+        public string Name => _localization.GetLocalizedString("TaskCleanLogs");
 
-        public string Description => string.Format("Deletes log files that are more than {0} days old.", ConfigurationManager.CommonConfiguration.LogFileRetentionDays);
+        /// <inheritdoc />
+        public string Description => string.Format(_localization.GetLocalizedString("TaskCleanLogsDescription"), ConfigurationManager.CommonConfiguration.LogFileRetentionDays);
 
-        public string Category => "Maintenance";
+        /// <inheritdoc />
+        public string Category => _localization.GetLocalizedString("TasksMaintenanceCategory");
 
+        /// <inheritdoc />
         public string Key => "CleanLogFiles";
 
+        /// <inheritdoc />
         public bool IsHidden => false;
 
+        /// <inheritdoc />
         public bool IsEnabled => true;
 
+        /// <inheritdoc />
         public bool IsLogged => true;
     }
 }

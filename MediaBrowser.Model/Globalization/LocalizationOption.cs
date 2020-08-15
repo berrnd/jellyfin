@@ -1,5 +1,5 @@
+#nullable disable
 #pragma warning disable CS1591
-#pragma warning disable SA1600
 
 namespace MediaBrowser.Model.Globalization
 {
@@ -12,6 +12,7 @@ namespace MediaBrowser.Model.Globalization
         }
 
         public string Name { get; set; }
+
         public string Value { get; set; }
     }
 }

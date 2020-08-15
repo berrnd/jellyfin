@@ -1,3 +1,5 @@
+#pragma warning disable CS1591
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,7 +14,7 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
-using MediaBrowser.Providers.TV.TheTVDB;
+using MediaBrowser.Providers.Plugins.TheTvdb;
 using Microsoft.Extensions.Logging;
 
 namespace MediaBrowser.Providers.TV
@@ -26,7 +28,7 @@ namespace MediaBrowser.Providers.TV
         private readonly ILibraryManager _libraryManager;
         private readonly ILocalizationManager _localization;
         private readonly IFileSystem _fileSystem;
-        private readonly TvDbClientManager _tvDbClientManager;
+        private readonly TvdbClientManager _tvdbClientManager;
 
         public MissingEpisodeProvider(
             ILogger logger,
@@ -34,25 +36,25 @@ namespace MediaBrowser.Providers.TV
             ILibraryManager libraryManager,
             ILocalizationManager localization,
             IFileSystem fileSystem,
-            TvDbClientManager tvDbClientManager)
+            TvdbClientManager tvdbClientManager)
         {
             _logger = logger;
             _config = config;
             _libraryManager = libraryManager;
             _localization = localization;
             _fileSystem = fileSystem;
-            _tvDbClientManager = tvDbClientManager;
+            _tvdbClientManager = tvdbClientManager;
         }
 
         public async Task<bool> Run(Series series, bool addNewItems, CancellationToken cancellationToken)
         {
-            var tvdbId = series.GetProviderId(MetadataProviders.Tvdb);
+            var tvdbId = series.GetProviderId(MetadataProvider.Tvdb);
             if (string.IsNullOrEmpty(tvdbId))
             {
                 return false;
             }
 
-            var episodes = await _tvDbClientManager.GetAllEpisodesAsync(Convert.ToInt32(tvdbId), series.GetPreferredMetadataLanguage(), cancellationToken);
+            var episodes = await _tvdbClientManager.GetAllEpisodesAsync(Convert.ToInt32(tvdbId), series.GetPreferredMetadataLanguage(), cancellationToken);
 
             var episodeLookup = episodes
                 .Select(i =>
@@ -108,7 +110,7 @@ namespace MediaBrowser.Providers.TV
 
         /// <summary>
         /// Returns true if a series has any seasons or episodes without season or episode numbers
-        /// If this data is missing no virtual items will be added in order to prevent possible duplicates
+        /// If this data is missing no virtual items will be added in order to prevent possible duplicates.
         /// </summary>
         private bool HasInvalidContent(IList<BaseItem> allItems)
         {
@@ -171,7 +173,7 @@ namespace MediaBrowser.Providers.TV
         }
 
         /// <summary>
-        /// Removes the virtual entry after a corresponding physical version has been added
+        /// Removes the virtual entry after a corresponding physical version has been added.
         /// </summary>
         private bool RemoveObsoleteOrMissingEpisodes(
             IEnumerable<BaseItem> allRecursiveChildren,
