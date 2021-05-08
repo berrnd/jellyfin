@@ -18,14 +18,12 @@ namespace Emby.Dlna.Didl
         {
             _all = string.Equals(filter, "*", StringComparison.OrdinalIgnoreCase);
 
-            _fields = (filter ?? string.Empty).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            _fields = (filter ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries);
         }
 
         public bool Contains(string field)
         {
-            // Don't bother with this. Some clients (media monkey) use the filter and then don't display very well when very little data comes back.
-            return true;
-            // return _all || ListHelper.ContainsIgnoreCase(_fields, field);
+            return _all || Array.Exists(_fields, x => x.Equals(field, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

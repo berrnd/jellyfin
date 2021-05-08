@@ -4,12 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Jellyfin.Data.Entities;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
-using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 using MusicAlbum = MediaBrowser.Controller.Entities.Audio.MusicAlbum;
 
@@ -49,7 +49,7 @@ namespace Emby.Server.Implementations.Library
             var genres = item
                .GetRecursiveChildren(user, new InternalItemsQuery(user)
                {
-                   IncludeItemTypes = new[] { typeof(Audio).Name },
+                   IncludeItemTypes = new[] { nameof(Audio) },
                    DtoOptions = dtoOptions
                })
                .Cast<Audio>()
@@ -86,7 +86,7 @@ namespace Emby.Server.Implementations.Library
         {
             return _libraryManager.GetItemList(new InternalItemsQuery(user)
             {
-                IncludeItemTypes = new[] { typeof(Audio).Name },
+                IncludeItemTypes = new[] { nameof(Audio) },
 
                 GenreIds = genreIds.ToArray(),
 

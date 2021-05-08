@@ -26,16 +26,16 @@ namespace MediaBrowser.Providers.Plugins.AudioDb
     {
         private readonly IServerConfigurationManager _config;
         private readonly IFileSystem _fileSystem;
-        private readonly IHttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IJsonSerializer _json;
 
         public static AudioDbAlbumProvider Current;
 
-        public AudioDbAlbumProvider(IServerConfigurationManager config, IFileSystem fileSystem, IHttpClient httpClient, IJsonSerializer json)
+        public AudioDbAlbumProvider(IServerConfigurationManager config, IFileSystem fileSystem, IHttpClientFactory httpClientFactory, IJsonSerializer json)
         {
             _config = config;
             _fileSystem = fileSystem;
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
             _json = json;
 
             Current = this;
@@ -56,13 +56,6 @@ namespace MediaBrowser.Providers.Plugins.AudioDb
         public async Task<MetadataResult<MusicAlbum>> GetMetadata(AlbumInfo info, CancellationToken cancellationToken)
         {
             var result = new MetadataResult<MusicAlbum>();
-
-            // TODO maybe remove when artist metadata can be disabled
-            if (!Plugin.Instance.Configuration.Enable)
-            {
-                return result;
-            }
-
             var id = info.GetReleaseGroupId();
 
             if (!string.IsNullOrWhiteSpace(id))
@@ -174,18 +167,11 @@ namespace MediaBrowser.Providers.Plugins.AudioDb
 
             Directory.CreateDirectory(Path.GetDirectoryName(path));
 
-            using (var httpResponse = await _httpClient.SendAsync(
-                new HttpRequestOptions
-                {
-                    Url = url,
-                    CancellationToken = cancellationToken
-                },
-                HttpMethod.Get).ConfigureAwait(false))
-            using (var response = httpResponse.Content)
-            using (var xmlFileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read, IODefaults.FileStreamBufferSize, true))
-            {
-                await response.CopyToAsync(xmlFileStream).ConfigureAwait(false);
-            }
+            using var response = await _httpClientFactory.CreateClient(NamedClient.Default).GetAsync(url, cancellationToken).ConfigureAwait(false);
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            // use FileShare.None as this bypasses dotnet bug dotnet/runtime#42790 .
+            await using var xmlFileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, IODefaults.FileStreamBufferSize, true);
+            await stream.CopyToAsync(xmlFileStream, cancellationToken).ConfigureAwait(false);
         }
 
         private static string GetAlbumDataPath(IApplicationPaths appPaths, string musicBrainzReleaseGroupId)
@@ -294,7 +280,7 @@ namespace MediaBrowser.Providers.Plugins.AudioDb
         }
 
         /// <inheritdoc />
-        public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
+        public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

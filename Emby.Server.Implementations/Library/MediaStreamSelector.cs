@@ -89,7 +89,7 @@ namespace Emby.Server.Implementations.Library
             }
 
             // load forced subs if we have found no suitable full subtitles
-            stream = stream ?? streams.FirstOrDefault(s => s.IsForced && string.Equals(s.Language, audioTrackLanguage, StringComparison.OrdinalIgnoreCase));
+            stream ??= streams.FirstOrDefault(s => s.IsForced && string.Equals(s.Language, audioTrackLanguage, StringComparison.OrdinalIgnoreCase));
 
             if (stream != null)
             {
@@ -101,7 +101,7 @@ namespace Emby.Server.Implementations.Library
 
         private static IEnumerable<MediaStream> GetSortedStreams(IEnumerable<MediaStream> streams, MediaStreamType type, string[] languagePreferences)
         {
-            // Give some preferance to external text subs for better performance
+            // Give some preference to external text subs for better performance
             return streams.Where(i => i.Type == type)
                 .OrderBy(i =>
             {

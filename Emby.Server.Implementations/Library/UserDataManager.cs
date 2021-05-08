@@ -13,8 +13,8 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
-using Microsoft.Extensions.Logging;
 using Book = MediaBrowser.Controller.Entities.Book;
+using AudioBook = MediaBrowser.Controller.Entities.AudioBook;
 
 namespace Emby.Server.Implementations.Library
 {
@@ -28,18 +28,15 @@ namespace Emby.Server.Implementations.Library
         private readonly ConcurrentDictionary<string, UserItemData> _userData =
             new ConcurrentDictionary<string, UserItemData>(StringComparer.OrdinalIgnoreCase);
 
-        private readonly ILogger<UserDataManager> _logger;
         private readonly IServerConfigurationManager _config;
         private readonly IUserManager _userManager;
         private readonly IUserDataRepository _repository;
 
         public UserDataManager(
-            ILogger<UserDataManager> logger,
             IServerConfigurationManager config,
             IUserManager userManager,
             IUserDataRepository repository)
         {
-            _logger = logger;
             _config = config;
             _userManager = userManager;
             _repository = repository;
@@ -223,7 +220,7 @@ namespace Emby.Server.Implementations.Library
             var hasRuntime = runtimeTicks > 0;
 
             // If a position has been reported, and if we know the duration
-            if (positionTicks > 0 && hasRuntime)
+            if (positionTicks > 0 && hasRuntime && !(item is AudioBook))
             {
                 var pctIn = decimal.Divide(positionTicks, runtimeTicks) * 100;
 
@@ -247,6 +244,23 @@ namespace Emby.Server.Implementations.Library
                         positionTicks = 0;
                         data.Played = playedToCompletion = true;
                     }
+                }
+            }
+            else if (positionTicks > 0 && hasRuntime && item is AudioBook)
+            {
+                var playbackPositionInMinutes = TimeSpan.FromTicks(positionTicks).TotalMinutes;
+                var remainingTimeInMinutes = TimeSpan.FromTicks(runtimeTicks - positionTicks).TotalMinutes;
+
+                if (playbackPositionInMinutes < _config.Configuration.MinAudiobookResume)
+                {
+                    // ignore progress during the beginning
+                    positionTicks = 0;
+                }
+                else if (remainingTimeInMinutes < _config.Configuration.MaxAudiobookResume || positionTicks >= runtimeTicks)
+                {
+                    // mark as completed close to the end
+                    positionTicks = 0;
+                    data.Played = playedToCompletion = true;
                 }
             }
             else if (!hasRuntime)

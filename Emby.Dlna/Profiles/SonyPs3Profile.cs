@@ -52,7 +52,7 @@ namespace Emby.Dlna.Profiles
                     Container = "ts,mpegts",
                     Type = DlnaProfileType.Video,
                     VideoCodec = "mpeg1video,mpeg2video,h264",
-                    AudioCodec = "ac3,mp2,mp3,aac"
+                    AudioCodec = "aac,ac3,mp2"
                 },
                 new DirectPlayProfile
                 {
@@ -92,7 +92,7 @@ namespace Emby.Dlna.Profiles
                 {
                     Container = "ts",
                     VideoCodec = "h264",
-                    AudioCodec = "ac3,aac,mp3",
+                    AudioCodec = "aac,ac3,mp2",
                     Type = DlnaProfileType.Video
                 },
                 new TranscodingProfile
@@ -108,7 +108,7 @@ namespace Emby.Dlna.Profiles
                 {
                     Type = DlnaProfileType.Photo,
 
-                    Conditions = new []
+                    Conditions = new[]
                     {
                         new ProfileCondition
                         {
@@ -133,7 +133,7 @@ namespace Emby.Dlna.Profiles
                     Type = CodecType.Video,
                     Codec = "h264",
 
-                    Conditions = new []
+                    Conditions = new[]
                     {
                         new ProfileCondition
                         {
@@ -176,7 +176,7 @@ namespace Emby.Dlna.Profiles
                     Type = CodecType.VideoAudio,
                     Codec = "ac3",
 
-                    Conditions = new []
+                    Conditions = new[]
                     {
                         new ProfileCondition
                         {
@@ -201,7 +201,7 @@ namespace Emby.Dlna.Profiles
                     Type = CodecType.VideoAudio,
                     Codec = "wmapro",
 
-                    Conditions = new []
+                    Conditions = new[]
                     {
                         new ProfileCondition
                         {
@@ -217,7 +217,7 @@ namespace Emby.Dlna.Profiles
                     Type = CodecType.VideoAudio,
                     Codec = "aac",
 
-                    Conditions = new []
+                    Conditions = new[]
                     {
                         new ProfileCondition
                         {
@@ -235,7 +235,7 @@ namespace Emby.Dlna.Profiles
                 new ResponseProfile
                 {
                     Container = "mp4,mov",
-                    AudioCodec="aac",
+                    AudioCodec = "aac",
                     MimeType = "video/mp4",
                     Type = DlnaProfileType.Video
                 },
@@ -244,7 +244,7 @@ namespace Emby.Dlna.Profiles
                 {
                     Container = "avi",
                     MimeType = "video/divx",
-                    OrgPn="AVI",
+                    OrgPn = "AVI",
                     Type = DlnaProfileType.Video
                 },
 

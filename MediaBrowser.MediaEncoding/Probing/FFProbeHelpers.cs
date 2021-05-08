@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace MediaBrowser.MediaEncoding.Probing
 {
+    /// <summary>
+    /// Class containing helper methods for working with FFprobe output.
+    /// </summary>
     public static class FFProbeHelpers
     {
         /// <summary>
@@ -82,12 +86,14 @@ namespace MediaBrowser.MediaEncoding.Probing
         {
             var val = GetDictionaryValue(tags, key);
 
-            if (!string.IsNullOrEmpty(val))
+            if (string.IsNullOrEmpty(val))
             {
-                if (DateTime.TryParse(val, out var i))
-                {
-                    return i.ToUniversalTime();
-                }
+                return null;
+            }
+
+            if (DateTime.TryParse(val, DateTimeFormatInfo.CurrentInfo, DateTimeStyles.AssumeUniversal, out var i))
+            {
+                return i.ToUniversalTime();
             }
 
             return null;

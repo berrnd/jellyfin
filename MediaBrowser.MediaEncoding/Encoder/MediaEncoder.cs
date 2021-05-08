@@ -1,5 +1,8 @@
+#pragma warning disable CS1591
+
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -9,19 +12,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Extensions;
+using MediaBrowser.Common.Json;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.MediaEncoding.Probing;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Dlna;
+using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.MediaInfo;
 using MediaBrowser.Model.System;
-using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace MediaBrowser.MediaEncoding.Encoder
 {
@@ -31,9 +35,19 @@ namespace MediaBrowser.MediaEncoding.Encoder
     public class MediaEncoder : IMediaEncoder, IDisposable
     {
         /// <summary>
-        /// The default image extraction timeout in milliseconds.
+        /// The default SDR image extraction timeout in milliseconds.
         /// </summary>
-        internal const int DefaultImageExtractionTimeout = 5000;
+        internal const int DefaultSdrImageExtractionTimeout = 10000;
+
+        /// <summary>
+        /// The default HDR image extraction timeout in milliseconds.
+        /// </summary>
+        internal const int DefaultHdrImageExtractionTimeout = 20000;
+
+        /// <summary>
+        /// The us culture.
+        /// </summary>
+        private readonly CultureInfo _usCulture = new CultureInfo("en-US");
 
         private readonly ILogger<MediaEncoder> _logger;
         private readonly IServerConfigurationManager _configurationManager;
@@ -47,8 +61,16 @@ namespace MediaBrowser.MediaEncoding.Encoder
         private readonly object _runningProcessesLock = new object();
         private readonly List<ProcessWrapper> _runningProcesses = new List<ProcessWrapper>();
 
+        // MediaEncoder is registered as a Singleton
+        private readonly JsonSerializerOptions _jsonSerializerOptions;
+
+        private List<string> _encoders = new List<string>();
+        private List<string> _decoders = new List<string>();
+        private List<string> _hwaccels = new List<string>();
+
         private string _ffmpegPath = string.Empty;
         private string _ffprobePath;
+        private int threads;
 
         public MediaEncoder(
             ILogger<MediaEncoder> logger,
@@ -64,9 +86,8 @@ namespace MediaBrowser.MediaEncoding.Encoder
             _localization = localization;
             _encodingHelperFactory = encodingHelperFactory;
             _startupOptionFFmpegPath = config.GetValue<string>(Controller.Extensions.ConfigurationExtensions.FfmpegPathKey) ?? string.Empty;
+            _jsonSerializerOptions = JsonDefaults.GetOptions();
         }
-
-        private EncodingHelper EncodingHelper => _encodingHelperFactory.Value;
 
         /// <inheritdoc />
         public string EncoderPath => _ffmpegPath;
@@ -77,7 +98,7 @@ namespace MediaBrowser.MediaEncoding.Encoder
         /// <summary>
         /// Run at startup or if the user removes a Custom path from transcode page.
         /// Sets global variables FFmpegPath.
-        /// Precedence is: Config > CLI > $PATH
+        /// Precedence is: Config > CLI > $PATH.
         /// </summary>
         public void SetFFmpegPath()
         {
@@ -113,6 +134,7 @@ namespace MediaBrowser.MediaEncoding.Encoder
                 SetAvailableDecoders(validator.GetDecoders());
                 SetAvailableEncoders(validator.GetEncoders());
                 SetAvailableHwaccels(validator.GetHwaccels());
+                threads = EncodingHelper.GetNumberOfThreads(null, _configurationManager.GetEncodingOptions(), null);
             }
 
             _logger.LogInformation("FFmpeg: {EncoderLocation}: {FfmpegPath}", EncoderLocation, _ffmpegPath ?? string.Empty);
@@ -122,8 +144,8 @@ namespace MediaBrowser.MediaEncoding.Encoder
         /// Triggered from the Settings > Transcoding UI page when users submits Custom FFmpeg path to use.
         /// Only write the new path to xml if it exists.  Do not perform validation checks on ffmpeg here.
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="pathType"></param>
+        /// <param name="path">The path.</param>
+        /// <param name="pathType">The path type.</param>
         public void UpdateEncoderPath(string path, string pathType)
         {
             string newPath;
@@ -168,8 +190,8 @@ namespace MediaBrowser.MediaEncoding.Encoder
         /// If checks pass, global variable FFmpegPath and EncoderLocation are updated.
         /// </summary>
         /// <param name="path">FQPN to test.</param>
-        /// <param name="location">Location (External, Custom, System) of tool</param>
-        /// <returns></returns>
+        /// <param name="location">Location (External, Custom, System) of tool.</param>
+        /// <returns><c>true</c> if the version validation succeeded; otherwise, <c>false</c>.</returns>
         private bool ValidatePath(string path, FFmpegLocation location)
         {
             bool rc = false;
@@ -185,11 +207,9 @@ namespace MediaBrowser.MediaEncoding.Encoder
                         _logger.LogWarning("FFmpeg: {Location}: Failed version check: {Path}", location, path);
                     }
 
-                    // ToDo - Enable the ffmpeg validator.  At the moment any version can be used.
-                    rc = true;
-
                     _ffmpegPath = path;
                     EncoderLocation = location;
+                    return true;
                 }
                 else
                 {
@@ -221,8 +241,8 @@ namespace MediaBrowser.MediaEncoding.Encoder
         /// <summary>
         /// Search the system $PATH environment variable looking for given filename.
         /// </summary>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
+        /// <param name="fileName">The filename.</param>
+        /// <returns>The full path to the file.</returns>
         private string ExistsOnSystemPath(string fileName)
         {
             var inJellyfinPath = GetEncoderPathFromDirectory(AppContext.BaseDirectory, fileName, recursive: true);
@@ -246,25 +266,19 @@ namespace MediaBrowser.MediaEncoding.Encoder
             return null;
         }
 
-        private List<string> _encoders = new List<string>();
         public void SetAvailableEncoders(IEnumerable<string> list)
         {
             _encoders = list.ToList();
-            // _logger.Info("Supported encoders: {0}", string.Join(",", list.ToArray()));
         }
 
-        private List<string> _decoders = new List<string>();
         public void SetAvailableDecoders(IEnumerable<string> list)
         {
             _decoders = list.ToList();
-            // _logger.Info("Supported decoders: {0}", string.Join(",", list.ToArray()));
         }
 
-        private List<string> _hwaccels = new List<string>();
         public void SetAvailableHwaccels(IEnumerable<string> list)
         {
             _hwaccels = list.ToList();
-            //_logger.Info("Supported hwaccels: {0}", string.Join(",", list.ToArray()));
         }
 
         public bool SupportsEncoder(string encoder)
@@ -280,6 +294,17 @@ namespace MediaBrowser.MediaEncoding.Encoder
         public bool SupportsHwaccel(string hwaccel)
         {
             return _hwaccels.Contains(hwaccel, StringComparer.OrdinalIgnoreCase);
+        }
+
+        public bool SupportsFilter(string filter, string option)
+        {
+            if (_ffmpegPath != null)
+            {
+                var validator = new EncoderValidator(_logger, _ffmpegPath);
+                return validator.CheckFilter(filter, option);
+            }
+
+            return false;
         }
 
         public bool CanEncodeToAudioCodec(string codec)
@@ -311,46 +336,54 @@ namespace MediaBrowser.MediaEncoding.Encoder
         public Task<MediaInfo> GetMediaInfo(MediaInfoRequest request, CancellationToken cancellationToken)
         {
             var extractChapters = request.MediaType == DlnaProfileType.Video && request.ExtractChapters;
+            var inputFile = request.MediaSource.Path;
 
-            var inputFiles = MediaEncoderHelpers.GetInputArgument(_fileSystem, request.MediaSource.Path, request.MountedIso, request.PlayableStreamFileNames);
-
-            var probeSize = EncodingHelper.GetProbeSizeArgument(inputFiles.Length);
-            string analyzeDuration;
+            string analyzeDuration = string.Empty;
 
             if (request.MediaSource.AnalyzeDurationMs > 0)
             {
                 analyzeDuration = "-analyzeduration " +
                                   (request.MediaSource.AnalyzeDurationMs * 1000).ToString();
             }
-            else
-            {
-                analyzeDuration = EncodingHelper.GetAnalyzeDurationArgument(inputFiles.Length);
-            }
-
-            probeSize = probeSize + " " + analyzeDuration;
-            probeSize = probeSize.Trim();
 
             var forceEnableLogging = request.MediaSource.Protocol != MediaProtocol.File;
 
-            return GetMediaInfoInternal(GetInputArgument(inputFiles, request.MediaSource.Protocol), request.MediaSource.Path, request.MediaSource.Protocol, extractChapters,
-                probeSize, request.MediaType == DlnaProfileType.Audio, request.MediaSource.VideoType, forceEnableLogging, cancellationToken);
+            return GetMediaInfoInternal(
+                GetInputArgument(inputFile, request.MediaSource),
+                request.MediaSource.Path,
+                request.MediaSource.Protocol,
+                extractChapters,
+                analyzeDuration,
+                request.MediaType == DlnaProfileType.Audio,
+                request.MediaSource.VideoType,
+                forceEnableLogging,
+                cancellationToken);
         }
 
         /// <summary>
         /// Gets the input argument.
         /// </summary>
-        /// <param name="inputFiles">The input files.</param>
-        /// <param name="protocol">The protocol.</param>
+        /// <param name="inputFile">The input file.</param>
+        /// <param name="mediaSource">The mediaSource.</param>
         /// <returns>System.String.</returns>
-        /// <exception cref="ArgumentException">Unrecognized InputType</exception>
-        public string GetInputArgument(IReadOnlyList<string> inputFiles, MediaProtocol protocol)
-            => EncodingUtils.GetInputArgument(inputFiles, protocol);
+        /// <exception cref="ArgumentException">Unrecognized InputType.</exception>
+        public string GetInputArgument(string inputFile, MediaSourceInfo mediaSource)
+        {
+            var prefix = "file";
+            if (mediaSource.VideoType == VideoType.BluRay)
+            {
+                prefix = "bluray";
+            }
+
+            return EncodingUtils.GetInputArgument(prefix, inputFile, mediaSource.Protocol);
+        }
 
         /// <summary>
         /// Gets the media info internal.
         /// </summary>
         /// <returns>Task{MediaInfoResult}.</returns>
-        private async Task<MediaInfo> GetMediaInfoInternal(string inputPath,
+        private async Task<MediaInfo> GetMediaInfoInternal(
+            string inputPath,
             string primaryPath,
             MediaProtocol protocol,
             bool extractChapters,
@@ -361,9 +394,9 @@ namespace MediaBrowser.MediaEncoding.Encoder
             CancellationToken cancellationToken)
         {
             var args = extractChapters
-                ? "{0} -i {1} -threads 0 -v warning -print_format json -show_streams -show_chapters -show_format"
-                : "{0} -i {1} -threads 0 -v warning -print_format json -show_streams -show_format";
-            args = string.Format(args, probeSizeArgument, inputPath).Trim();
+                ? "{0} -i {1} -threads {2} -v warning -print_format json -show_streams -show_chapters -show_format"
+                : "{0} -i {1} -threads {2} -v warning -print_format json -show_streams -show_format";
+            args = string.Format(CultureInfo.InvariantCulture, args, probeSizeArgument, inputPath, threads).Trim();
 
             var process = new Process
             {
@@ -377,7 +410,6 @@ namespace MediaBrowser.MediaEncoding.Encoder
 
                     FileName = _ffprobePath,
                     Arguments = args,
-
 
                     WindowStyle = ProcessWindowStyle.Hidden,
                     ErrorDialog = false,
@@ -404,6 +436,7 @@ namespace MediaBrowser.MediaEncoding.Encoder
                 {
                     result = await JsonSerializer.DeserializeAsync<InternalMediaInfoResult>(
                                         process.StandardOutput.BaseStream,
+                                        _jsonSerializerOptions,
                                         cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
                 catch
@@ -439,30 +472,38 @@ namespace MediaBrowser.MediaEncoding.Encoder
             }
         }
 
-        /// <summary>
-        /// The us culture.
-        /// </summary>
-        protected readonly CultureInfo UsCulture = new CultureInfo("en-US");
-
         public Task<string> ExtractAudioImage(string path, int? imageStreamIndex, CancellationToken cancellationToken)
         {
-            return ExtractImage(new[] { path }, null, null, imageStreamIndex, MediaProtocol.File, true, null, null, cancellationToken);
+            var mediaSource = new MediaSourceInfo
+            {
+                Protocol = MediaProtocol.File
+            };
+
+            return ExtractImage(path, null, null, imageStreamIndex, mediaSource, true, null, null, cancellationToken);
         }
 
-        public Task<string> ExtractVideoImage(string[] inputFiles, string container, MediaProtocol protocol, MediaStream videoStream, Video3DFormat? threedFormat, TimeSpan? offset, CancellationToken cancellationToken)
+        public Task<string> ExtractVideoImage(string inputFile, string container, MediaSourceInfo mediaSource, MediaStream videoStream, Video3DFormat? threedFormat, TimeSpan? offset, CancellationToken cancellationToken)
         {
-            return ExtractImage(inputFiles, container, videoStream, null, protocol, false, threedFormat, offset, cancellationToken);
+            return ExtractImage(inputFile, container, videoStream, null, mediaSource, false, threedFormat, offset, cancellationToken);
         }
 
-        public Task<string> ExtractVideoImage(string[] inputFiles, string container, MediaProtocol protocol, MediaStream imageStream, int? imageStreamIndex, CancellationToken cancellationToken)
+        public Task<string> ExtractVideoImage(string inputFile, string container, MediaSourceInfo mediaSource, MediaStream imageStream, int? imageStreamIndex, CancellationToken cancellationToken)
         {
-            return ExtractImage(inputFiles, container, imageStream, imageStreamIndex, protocol, false, null, null, cancellationToken);
+            return ExtractImage(inputFile, container, imageStream, imageStreamIndex, mediaSource, false, null, null, cancellationToken);
         }
 
-        private async Task<string> ExtractImage(string[] inputFiles, string container, MediaStream videoStream, int? imageStreamIndex, MediaProtocol protocol, bool isAudio,
-            Video3DFormat? threedFormat, TimeSpan? offset, CancellationToken cancellationToken)
+        private async Task<string> ExtractImage(
+            string inputFile,
+            string container,
+            MediaStream videoStream,
+            int? imageStreamIndex,
+            MediaSourceInfo mediaSource,
+            bool isAudio,
+            Video3DFormat? threedFormat,
+            TimeSpan? offset,
+            CancellationToken cancellationToken)
         {
-            var inputArgument = GetInputArgument(inputFiles, protocol);
+            var inputArgument = GetInputArgument(inputFile, mediaSource);
 
             if (isAudio)
             {
@@ -474,9 +515,36 @@ namespace MediaBrowser.MediaEncoding.Encoder
             }
             else
             {
+                // The failure of HDR extraction usually occurs when using custom ffmpeg that does not contain the zscale filter.
                 try
                 {
-                    return await ExtractImageInternal(inputArgument, container, videoStream, imageStreamIndex, threedFormat, offset, true, cancellationToken).ConfigureAwait(false);
+                    return await ExtractImageInternal(inputArgument, container, videoStream, imageStreamIndex, threedFormat, offset, true, true, cancellationToken).ConfigureAwait(false);
+                }
+                catch (ArgumentException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "I-frame or HDR image extraction failed, will attempt with I-frame extraction disabled. Input: {Arguments}", inputArgument);
+                }
+
+                try
+                {
+                    return await ExtractImageInternal(inputArgument, container, videoStream, imageStreamIndex, threedFormat, offset, false, true, cancellationToken).ConfigureAwait(false);
+                }
+                catch (ArgumentException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "HDR image extraction failed, will fallback to SDR image extraction. Input: {Arguments}", inputArgument);
+                }
+
+                try
+                {
+                    return await ExtractImageInternal(inputArgument, container, videoStream, imageStreamIndex, threedFormat, offset, true, false, cancellationToken).ConfigureAwait(false);
                 }
                 catch (ArgumentException)
                 {
@@ -488,10 +556,10 @@ namespace MediaBrowser.MediaEncoding.Encoder
                 }
             }
 
-            return await ExtractImageInternal(inputArgument, container, videoStream, imageStreamIndex, threedFormat, offset, false, cancellationToken).ConfigureAwait(false);
+            return await ExtractImageInternal(inputArgument, container, videoStream, imageStreamIndex, threedFormat, offset, false, false, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task<string> ExtractImageInternal(string inputPath, string container, MediaStream videoStream, int? imageStreamIndex, Video3DFormat? threedFormat, TimeSpan? offset, bool useIFrame, CancellationToken cancellationToken)
+        private async Task<string> ExtractImageInternal(string inputPath, string container, MediaStream videoStream, int? imageStreamIndex, Video3DFormat? threedFormat, TimeSpan? offset, bool useIFrame, bool allowTonemap, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(inputPath))
             {
@@ -501,29 +569,29 @@ namespace MediaBrowser.MediaEncoding.Encoder
             var tempExtractPath = Path.Combine(_configurationManager.ApplicationPaths.TempDirectory, Guid.NewGuid() + ".jpg");
             Directory.CreateDirectory(Path.GetDirectoryName(tempExtractPath));
 
-            // apply some filters to thumbnail extracted below (below) crop any black lines that we made and get the correct ar then scale to width 600.
+            // apply some filters to thumbnail extracted below (below) crop any black lines that we made and get the correct ar.
             // This filter chain may have adverse effects on recorded tv thumbnails if ar changes during presentation ex. commercials @ diff ar
-            var vf = "scale=600:trunc(600/dar/2)*2";
+            var vf = string.Empty;
 
             if (threedFormat.HasValue)
             {
                 switch (threedFormat.Value)
                 {
                     case Video3DFormat.HalfSideBySide:
-                        vf = "crop=iw/2:ih:0:0,scale=(iw*2):ih,setdar=dar=a,crop=min(iw\\,ih*dar):min(ih\\,iw/dar):(iw-min(iw\\,iw*sar))/2:(ih - min (ih\\,ih/sar))/2,setsar=sar=1,scale=600:trunc(600/dar/2)*2";
-                        // hsbs crop width in half,scale to correct size, set the display aspect,crop out any black bars we may have made the scale width to 600. Work out the correct height based on the display aspect it will maintain the aspect where -1 in this case (3d) may not.
+                        vf = "-vf crop=iw/2:ih:0:0,scale=(iw*2):ih,setdar=dar=a,crop=min(iw\\,ih*dar):min(ih\\,iw/dar):(iw-min(iw\\,iw*sar))/2:(ih - min (ih\\,ih/sar))/2,setsar=sar=1";
+                        // hsbs crop width in half,scale to correct size, set the display aspect,crop out any black bars we may have made. Work out the correct height based on the display aspect it will maintain the aspect where -1 in this case (3d) may not.
                         break;
                     case Video3DFormat.FullSideBySide:
-                        vf = "crop=iw/2:ih:0:0,setdar=dar=a,crop=min(iw\\,ih*dar):min(ih\\,iw/dar):(iw-min(iw\\,iw*sar))/2:(ih - min (ih\\,ih/sar))/2,setsar=sar=1,scale=600:trunc(600/dar/2)*2";
-                        // fsbs crop width in half,set the display aspect,crop out any black bars we may have made the scale width to 600.
+                        vf = "-vf crop=iw/2:ih:0:0,setdar=dar=a,crop=min(iw\\,ih*dar):min(ih\\,iw/dar):(iw-min(iw\\,iw*sar))/2:(ih - min (ih\\,ih/sar))/2,setsar=sar=1";
+                        // fsbs crop width in half,set the display aspect,crop out any black bars we may have made
                         break;
                     case Video3DFormat.HalfTopAndBottom:
-                        vf = "crop=iw:ih/2:0:0,scale=(iw*2):ih),setdar=dar=a,crop=min(iw\\,ih*dar):min(ih\\,iw/dar):(iw-min(iw\\,iw*sar))/2:(ih - min (ih\\,ih/sar))/2,setsar=sar=1,scale=600:trunc(600/dar/2)*2";
-                        // htab crop heigh in half,scale to correct size, set the display aspect,crop out any black bars we may have made the scale width to 600
+                        vf = "-vf crop=iw:ih/2:0:0,scale=(iw*2):ih),setdar=dar=a,crop=min(iw\\,ih*dar):min(ih\\,iw/dar):(iw-min(iw\\,iw*sar))/2:(ih - min (ih\\,ih/sar))/2,setsar=sar=1";
+                        // htab crop heigh in half,scale to correct size, set the display aspect,crop out any black bars we may have made
                         break;
                     case Video3DFormat.FullTopAndBottom:
-                        vf = "crop=iw:ih/2:0:0,setdar=dar=a,crop=min(iw\\,ih*dar):min(ih\\,iw/dar):(iw-min(iw\\,iw*sar))/2:(ih - min (ih\\,ih/sar))/2,setsar=sar=1,scale=600:trunc(600/dar/2)*2";
-                        // ftab crop heigt in half, set the display aspect,crop out any black bars we may have made the scale width to 600
+                        vf = "-vf crop=iw:ih/2:0:0,setdar=dar=a,crop=min(iw\\,ih*dar):min(ih\\,iw/dar):(iw-min(iw\\,iw*sar))/2:(ih - min (ih\\,ih/sar))/2,setsar=sar=1";
+                        // ftab crop heigt in half, set the display aspect,crop out any black bars we may have made
                         break;
                     default:
                         break;
@@ -532,15 +600,41 @@ namespace MediaBrowser.MediaEncoding.Encoder
 
             var mapArg = imageStreamIndex.HasValue ? (" -map 0:v:" + imageStreamIndex.Value.ToString(CultureInfo.InvariantCulture)) : string.Empty;
 
-            var enableThumbnail = !new List<string> { "wtv" }.Contains(container ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+            var enableHdrExtraction = allowTonemap && string.Equals(videoStream?.VideoRange, "HDR", StringComparison.OrdinalIgnoreCase);
+            if (enableHdrExtraction)
+            {
+                string tonemapFilters = "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0:peak=100,zscale=t=bt709:m=bt709,format=yuv420p";
+                if (string.IsNullOrEmpty(vf))
+                {
+                    vf = "-vf " + tonemapFilters;
+                }
+                else
+                {
+                    vf += "," + tonemapFilters;
+                }
+            }
+
             // Use ffmpeg to sample 100 (we can drop this if required using thumbnail=50 for 50 frames) frames and pick the best thumbnail. Have a fall back just in case.
-            var thumbnail = enableThumbnail ? ",thumbnail=24" : string.Empty;
+            // mpegts need larger batch size otherwise the corrupted thumbnail will be created. Larger batch size will lower the processing speed.
+            var enableThumbnail = useIFrame && !string.Equals("wtv", container, StringComparison.OrdinalIgnoreCase);
+            if (enableThumbnail)
+            {
+                var useLargerBatchSize = string.Equals("mpegts", container, StringComparison.OrdinalIgnoreCase);
+                var batchSize = useLargerBatchSize ? "50" : "24";
+                if (string.IsNullOrEmpty(vf))
+                {
+                    vf = "-vf thumbnail=" + batchSize;
+                }
+                else
+                {
+                    vf += ",thumbnail=" + batchSize;
+                }
+            }
 
-            var args = useIFrame ? string.Format("-i {0}{3} -threads 0 -v quiet -vframes 1 -vf \"{2}{4}\" -f image2 \"{1}\"", inputPath, tempExtractPath, vf, mapArg, thumbnail) :
-                string.Format("-i {0}{3} -threads 0 -v quiet -vframes 1 -vf \"{2}\" -f image2 \"{1}\"", inputPath, tempExtractPath, vf, mapArg);
+            var args = string.Format(CultureInfo.InvariantCulture, "-i {0}{3} -threads {4} -v quiet -vframes 1 {2} -f image2 \"{1}\"", inputPath, tempExtractPath, vf, mapArg, threads);
 
-            var probeSizeArgument = EncodingHelper.GetProbeSizeArgument(1);
-            var analyzeDurationArgument = EncodingHelper.GetAnalyzeDurationArgument(1);
+            var probeSizeArgument = string.Empty;
+            var analyzeDurationArgument = string.Empty;
 
             if (!string.IsNullOrWhiteSpace(probeSizeArgument))
             {
@@ -554,7 +648,7 @@ namespace MediaBrowser.MediaEncoding.Encoder
 
             if (offset.HasValue)
             {
-                args = string.Format("-ss {0} ", GetTimeParameter(offset.Value)) + args;
+                args = string.Format(CultureInfo.InvariantCulture, "-ss {0} ", GetTimeParameter(offset.Value)) + args;
             }
 
             if (videoStream != null)
@@ -605,7 +699,7 @@ namespace MediaBrowser.MediaEncoding.Encoder
                     var timeoutMs = _configurationManager.Configuration.ImageExtractionTimeoutMs;
                     if (timeoutMs <= 0)
                     {
-                        timeoutMs = DefaultImageExtractionTimeout;
+                        timeoutMs = enableHdrExtraction ? DefaultHdrImageExtractionTimeout : DefaultSdrImageExtractionTimeout;
                     }
 
                     ranToCompletion = await process.WaitForExitAsync(TimeSpan.FromMilliseconds(timeoutMs)).ConfigureAwait(false);
@@ -625,7 +719,7 @@ namespace MediaBrowser.MediaEncoding.Encoder
 
                 if (exitCode == -1 || !file.Exists || file.Length == 0)
                 {
-                    var msg = string.Format("ffmpeg image extraction failed for {0}", inputPath);
+                    var msg = string.Format(CultureInfo.InvariantCulture, "ffmpeg image extraction failed for {0}", inputPath);
 
                     _logger.LogError(msg);
 
@@ -645,14 +739,14 @@ namespace MediaBrowser.MediaEncoding.Encoder
 
         public string GetTimeParameter(TimeSpan time)
         {
-            return time.ToString(@"hh\:mm\:ss\.fff", UsCulture);
+            return time.ToString(@"hh\:mm\:ss\.fff", _usCulture);
         }
 
         public async Task ExtractVideoImagesOnInterval(
-            string[] inputFiles,
+            string inputFile,
             string container,
             MediaStream videoStream,
-            MediaProtocol protocol,
+            MediaSourceInfo mediaSource,
             Video3DFormat? threedFormat,
             TimeSpan interval,
             string targetDirectory,
@@ -660,24 +754,24 @@ namespace MediaBrowser.MediaEncoding.Encoder
             int? maxWidth,
             CancellationToken cancellationToken)
         {
-            var inputArgument = GetInputArgument(inputFiles, protocol);
+            var inputArgument = GetInputArgument(inputFile, mediaSource);
 
-            var vf = "fps=fps=1/" + interval.TotalSeconds.ToString(UsCulture);
+            var vf = "fps=fps=1/" + interval.TotalSeconds.ToString(_usCulture);
 
             if (maxWidth.HasValue)
             {
-                var maxWidthParam = maxWidth.Value.ToString(UsCulture);
+                var maxWidthParam = maxWidth.Value.ToString(_usCulture);
 
-                vf += string.Format(",scale=min(iw\\,{0}):trunc(ow/dar/2)*2", maxWidthParam);
+                vf += string.Format(CultureInfo.InvariantCulture, ",scale=min(iw\\,{0}):trunc(ow/dar/2)*2", maxWidthParam);
             }
 
             Directory.CreateDirectory(targetDirectory);
             var outputPath = Path.Combine(targetDirectory, filenamePrefix + "%05d.jpg");
 
-            var args = string.Format("-i {0} -threads 0 -v quiet -vf \"{2}\" -f image2 \"{1}\"", inputArgument, outputPath, vf);
+            var args = string.Format(CultureInfo.InvariantCulture, "-i {0} -threads {3} -v quiet {2} -f image2 \"{1}\"", inputArgument, outputPath, vf, threads);
 
-            var probeSizeArgument = EncodingHelper.GetProbeSizeArgument(1);
-            var analyzeDurationArgument = EncodingHelper.GetAnalyzeDurationArgument(1);
+            var probeSizeArgument = string.Empty;
+            var analyzeDurationArgument = string.Empty;
 
             if (!string.IsNullOrWhiteSpace(probeSizeArgument))
             {
@@ -774,7 +868,7 @@ namespace MediaBrowser.MediaEncoding.Encoder
 
                 if (exitCode == -1)
                 {
-                    var msg = string.Format("ffmpeg image extraction failed for {0}", inputArgument);
+                    var msg = string.Format(CultureInfo.InvariantCulture, "ffmpeg image extraction failed for {0}", inputArgument);
 
                     _logger.LogError(msg);
 
@@ -840,7 +934,7 @@ namespace MediaBrowser.MediaEncoding.Encoder
             // https://ffmpeg.org/ffmpeg-filters.html#Notes-on-filtergraph-escaping
             // We need to double escape
 
-            return path.Replace('\\', '/').Replace(":", "\\:").Replace("'", "'\\\\\\''");
+            return path.Replace('\\', '/').Replace(":", "\\:", StringComparison.Ordinal).Replace("'", "'\\\\\\''", StringComparison.Ordinal);
         }
 
         /// <inheritdoc />
@@ -859,6 +953,7 @@ namespace MediaBrowser.MediaEncoding.Encoder
             if (dispose)
             {
                 StopProcesses();
+                _thumbnailResourcePool.Dispose();
             }
         }
 
@@ -869,16 +964,14 @@ namespace MediaBrowser.MediaEncoding.Encoder
         }
 
         /// <inheritdoc />
-        public IEnumerable<string> GetPrimaryPlaylistVobFiles(string path, IIsoMount isoMount, uint? titleNumber)
+        public IEnumerable<string> GetPrimaryPlaylistVobFiles(string path, uint? titleNumber)
         {
             // min size 300 mb
             const long MinPlayableSize = 314572800;
 
-            var root = isoMount != null ? isoMount.MountedPath : path;
-
             // Try to eliminate menus and intros by skipping all files at the front of the list that are less than the minimum size
             // Once we reach a file that is at least the minimum, return all subsequent ones
-            var allVobs = _fileSystem.GetFiles(root, true)
+            var allVobs = _fileSystem.GetFiles(path, true)
                 .Where(file => string.Equals(file.Extension, ".vob", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(i => i.FullName)
                 .ToList();

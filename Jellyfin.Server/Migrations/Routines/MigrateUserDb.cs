@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using Emby.Server.Implementations.Data;
 using Emby.Server.Implementations.Serialization;
 using Jellyfin.Data.Entities;
@@ -74,7 +76,12 @@ namespace Jellyfin.Server.Migrations.Routines
 
                 foreach (var entry in queryResult)
                 {
-                    UserMockup mockup = JsonSerializer.Deserialize<UserMockup>(entry[2].ToBlob(), JsonDefaults.GetOptions());
+                    UserMockup? mockup = JsonSerializer.Deserialize<UserMockup>(entry[2].ToBlob(), JsonDefaults.GetOptions());
+                    if (mockup == null)
+                    {
+                        continue;
+                    }
+
                     var userDataDir = Path.Combine(_paths.UserConfigurationDirectoryPath, mockup.Name);
 
                     var config = File.Exists(Path.Combine(userDataDir, "config.xml"))

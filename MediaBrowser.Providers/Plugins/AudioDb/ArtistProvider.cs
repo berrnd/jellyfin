@@ -23,24 +23,24 @@ namespace MediaBrowser.Providers.Plugins.AudioDb
 {
     public class AudioDbArtistProvider : IRemoteMetadataProvider<MusicArtist, ArtistInfo>, IHasOrder
     {
-        private readonly IServerConfigurationManager _config;
-        private readonly IFileSystem _fileSystem;
-        private readonly IHttpClient _httpClient;
-        private readonly IJsonSerializer _json;
-
-        public static AudioDbArtistProvider Current;
-
         private const string ApiKey = "195003";
         public const string BaseUrl = "https://www.theaudiodb.com/api/v1/json/" + ApiKey;
 
-        public AudioDbArtistProvider(IServerConfigurationManager config, IFileSystem fileSystem, IHttpClient httpClient, IJsonSerializer json)
+        private readonly IServerConfigurationManager _config;
+        private readonly IFileSystem _fileSystem;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IJsonSerializer _json;
+
+        public AudioDbArtistProvider(IServerConfigurationManager config, IFileSystem fileSystem, IHttpClientFactory httpClientFactory, IJsonSerializer json)
         {
             _config = config;
             _fileSystem = fileSystem;
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
             _json = json;
             Current = this;
         }
+
+        public static AudioDbArtistProvider Current { get; private set; }
 
         /// <inheritdoc />
         public string Name => "TheAudioDB";
@@ -57,13 +57,6 @@ namespace MediaBrowser.Providers.Plugins.AudioDb
         public async Task<MetadataResult<MusicArtist>> GetMetadata(ArtistInfo info, CancellationToken cancellationToken)
         {
             var result = new MetadataResult<MusicArtist>();
-
-            // TODO maybe remove when artist metadata can be disabled
-            if (!Plugin.Instance.Configuration.Enable)
-            {
-                return result;
-            }
-
             var id = info.GetMusicBrainzArtistId();
 
             if (!string.IsNullOrWhiteSpace(id))
@@ -155,23 +148,14 @@ namespace MediaBrowser.Providers.Plugins.AudioDb
 
             var path = GetArtistInfoPath(_config.ApplicationPaths, musicBrainzId);
 
-            using (var httpResponse = await _httpClient.SendAsync(
-                new HttpRequestOptions
-                {
-                    Url = url,
-                    CancellationToken = cancellationToken,
-                    BufferContent = true
-                },
-                HttpMethod.Get).ConfigureAwait(false))
-            using (var response = httpResponse.Content)
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using var response = await _httpClientFactory.CreateClient(NamedClient.Default).GetAsync(url, cancellationToken).ConfigureAwait(false);
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 
-                using (var xmlFileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read, IODefaults.FileStreamBufferSize, true))
-                {
-                    await response.CopyToAsync(xmlFileStream).ConfigureAwait(false);
-                }
-            }
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+            // use FileShare.None as this bypasses dotnet bug dotnet/runtime#42790 .
+            await using var xmlFileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, IODefaults.FileStreamBufferSize, true);
+            await stream.CopyToAsync(xmlFileStream, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -289,7 +273,7 @@ namespace MediaBrowser.Providers.Plugins.AudioDb
         }
 
         /// <inheritdoc />
-        public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
+        public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

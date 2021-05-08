@@ -11,7 +11,6 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
-using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -25,14 +24,9 @@ namespace Emby.Server.Implementations.Images
     /// </summary>
     public class ArtistImageProvider : BaseDynamicImageProvider<MusicArtist>
     {
-        /// <summary>
-        /// The library manager.
-        /// </summary>
-        private readonly ILibraryManager _libraryManager;
-
-        public ArtistImageProvider(IFileSystem fileSystem, IProviderManager providerManager, IApplicationPaths applicationPaths, IImageProcessor imageProcessor, ILibraryManager libraryManager) : base(fileSystem, providerManager, applicationPaths, imageProcessor)
+        public ArtistImageProvider(IFileSystem fileSystem, IProviderManager providerManager, IApplicationPaths applicationPaths, IImageProcessor imageProcessor)
+            : base(fileSystem, providerManager, applicationPaths, imageProcessor)
         {
-            _libraryManager = libraryManager;
         }
 
         /// <summary>
@@ -48,7 +42,7 @@ namespace Emby.Server.Implementations.Images
             // return _libraryManager.GetItemList(new InternalItemsQuery
             // {
             //    ArtistIds = new[] { item.Id },
-            //    IncludeItemTypes = new[] { typeof(MusicAlbum).Name },
+            //    IncludeItemTypes = new[] { nameof(MusicAlbum) },
             //    OrderBy = new[] { (ItemSortBy.Random, SortOrder.Ascending) },
             //    Limit = 4,
             //    Recursive = true,

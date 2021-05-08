@@ -54,11 +54,15 @@ namespace Emby.Dlna
             _appHost = appHost;
         }
 
+        private string UserProfilesPath => Path.Combine(_appPaths.ConfigurationDirectoryPath, "dlna", "user");
+
+        private string SystemProfilesPath => Path.Combine(_appPaths.ConfigurationDirectoryPath, "dlna", "system");
+
         public async Task InitProfilesAsync()
         {
             try
             {
-                await ExtractSystemProfilesAsync();
+                await ExtractSystemProfilesAsync().ConfigureAwait(false);
                 LoadProfiles();
             }
             catch (Exception ex)
@@ -107,7 +111,7 @@ namespace Emby.Dlna
 
             if (profile != null)
             {
-                _logger.LogDebug("Found matching device profile: {0}", profile.Name);
+                _logger.LogDebug("Found matching device profile: {ProfileName}", profile.Name);
             }
             else
             {
@@ -122,101 +126,57 @@ namespace Emby.Dlna
             var builder = new StringBuilder();
 
             builder.AppendLine("No matching device profile found. The default will need to be used.");
-            builder.AppendLine(string.Format("DeviceDescription:{0}", profile.DeviceDescription ?? string.Empty));
-            builder.AppendLine(string.Format("FriendlyName:{0}", profile.FriendlyName ?? string.Empty));
-            builder.AppendLine(string.Format("Manufacturer:{0}", profile.Manufacturer ?? string.Empty));
-            builder.AppendLine(string.Format("ManufacturerUrl:{0}", profile.ManufacturerUrl ?? string.Empty));
-            builder.AppendLine(string.Format("ModelDescription:{0}", profile.ModelDescription ?? string.Empty));
-            builder.AppendLine(string.Format("ModelName:{0}", profile.ModelName ?? string.Empty));
-            builder.AppendLine(string.Format("ModelNumber:{0}", profile.ModelNumber ?? string.Empty));
-            builder.AppendLine(string.Format("ModelUrl:{0}", profile.ModelUrl ?? string.Empty));
-            builder.AppendLine(string.Format("SerialNumber:{0}", profile.SerialNumber ?? string.Empty));
+            builder.Append("FriendlyName:").AppendLine(profile.FriendlyName);
+            builder.Append("Manufacturer:").AppendLine(profile.Manufacturer);
+            builder.Append("ManufacturerUrl:").AppendLine(profile.ManufacturerUrl);
+            builder.Append("ModelDescription:").AppendLine(profile.ModelDescription);
+            builder.Append("ModelName:").AppendLine(profile.ModelName);
+            builder.Append("ModelNumber:").AppendLine(profile.ModelNumber);
+            builder.Append("ModelUrl:").AppendLine(profile.ModelUrl);
+            builder.Append("SerialNumber:").AppendLine(profile.SerialNumber);
 
             _logger.LogInformation(builder.ToString());
         }
 
-        private bool IsMatch(DeviceIdentification deviceInfo, DeviceIdentification profileInfo)
+        /// <summary>
+        /// Attempts to match a device with a profile.
+        /// Rules:
+        /// - If the profile field has no value, the field matches irregardless of its contents.
+        /// - the profile field can be an exact match, or a reg exp.
+        /// </summary>
+        /// <param name="deviceInfo">The <see cref="DeviceIdentification"/> of the device.</param>
+        /// <param name="profileInfo">The <see cref="DeviceIdentification"/> of the profile.</param>
+        /// <returns><b>True</b> if they match.</returns>
+        public bool IsMatch(DeviceIdentification deviceInfo, DeviceIdentification profileInfo)
         {
-            if (!string.IsNullOrEmpty(profileInfo.DeviceDescription))
-            {
-                if (deviceInfo.DeviceDescription == null || !IsRegexMatch(deviceInfo.DeviceDescription, profileInfo.DeviceDescription))
-                {
-                    return false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(profileInfo.FriendlyName))
-            {
-                if (deviceInfo.FriendlyName == null || !IsRegexMatch(deviceInfo.FriendlyName, profileInfo.FriendlyName))
-                {
-                    return false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(profileInfo.Manufacturer))
-            {
-                if (deviceInfo.Manufacturer == null || !IsRegexMatch(deviceInfo.Manufacturer, profileInfo.Manufacturer))
-                {
-                    return false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(profileInfo.ManufacturerUrl))
-            {
-                if (deviceInfo.ManufacturerUrl == null || !IsRegexMatch(deviceInfo.ManufacturerUrl, profileInfo.ManufacturerUrl))
-                {
-                    return false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(profileInfo.ModelDescription))
-            {
-                if (deviceInfo.ModelDescription == null || !IsRegexMatch(deviceInfo.ModelDescription, profileInfo.ModelDescription))
-                {
-                    return false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(profileInfo.ModelName))
-            {
-                if (deviceInfo.ModelName == null || !IsRegexMatch(deviceInfo.ModelName, profileInfo.ModelName))
-                {
-                    return false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(profileInfo.ModelNumber))
-            {
-                if (deviceInfo.ModelNumber == null || !IsRegexMatch(deviceInfo.ModelNumber, profileInfo.ModelNumber))
-                {
-                    return false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(profileInfo.ModelUrl))
-            {
-                if (deviceInfo.ModelUrl == null || !IsRegexMatch(deviceInfo.ModelUrl, profileInfo.ModelUrl))
-                {
-                    return false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(profileInfo.SerialNumber))
-            {
-                if (deviceInfo.SerialNumber == null || !IsRegexMatch(deviceInfo.SerialNumber, profileInfo.SerialNumber))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return IsRegexOrSubstringMatch(deviceInfo.FriendlyName, profileInfo.FriendlyName)
+                && IsRegexOrSubstringMatch(deviceInfo.Manufacturer, profileInfo.Manufacturer)
+                && IsRegexOrSubstringMatch(deviceInfo.ManufacturerUrl, profileInfo.ManufacturerUrl)
+                && IsRegexOrSubstringMatch(deviceInfo.ModelDescription, profileInfo.ModelDescription)
+                && IsRegexOrSubstringMatch(deviceInfo.ModelName, profileInfo.ModelName)
+                && IsRegexOrSubstringMatch(deviceInfo.ModelNumber, profileInfo.ModelNumber)
+                && IsRegexOrSubstringMatch(deviceInfo.ModelUrl, profileInfo.ModelUrl)
+                && IsRegexOrSubstringMatch(deviceInfo.SerialNumber, profileInfo.SerialNumber);
         }
 
-        private bool IsRegexMatch(string input, string pattern)
+        private bool IsRegexOrSubstringMatch(string input, string pattern)
         {
+            if (string.IsNullOrEmpty(pattern))
+            {
+                // In profile identification: An empty pattern matches anything.
+                return true;
+            }
+
+            if (string.IsNullOrEmpty(input))
+            {
+                // The profile contains a value, and the device doesn't.
+                return false;
+            }
+
             try
             {
-                return Regex.IsMatch(input, pattern);
+                return input.Equals(pattern, StringComparison.OrdinalIgnoreCase)
+                    || Regex.IsMatch(input, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             }
             catch (ArgumentException ex)
             {
@@ -240,7 +200,7 @@ namespace Emby.Dlna
             }
             else
             {
-                var headerString = string.Join(", ", headers.Select(i => string.Format("{0}={1}", i.Key, i.Value)).ToArray());
+                var headerString = string.Join(", ", headers.Select(i => string.Format(CultureInfo.InvariantCulture, "{0}={1}", i.Key, i.Value)));
                 _logger.LogDebug("No matching device profile found. {0}", headerString);
             }
 
@@ -279,10 +239,6 @@ namespace Emby.Dlna
 
             return false;
         }
-
-        private string UserProfilesPath => Path.Combine(_appPaths.ConfigurationDirectoryPath, "dlna", "user");
-
-        private string SystemProfilesPath => Path.Combine(_appPaths.ConfigurationDirectoryPath, "dlna", "system");
 
         private IEnumerable<DeviceProfile> GetProfiles(string path, DeviceProfileType type)
         {
@@ -342,7 +298,12 @@ namespace Emby.Dlna
                 throw new ArgumentNullException(nameof(id));
             }
 
-            var info = GetProfileInfosInternal().First(i => string.Equals(i.Info.Id, id, StringComparison.OrdinalIgnoreCase));
+            var info = GetProfileInfosInternal().FirstOrDefault(i => string.Equals(i.Info.Id, id, StringComparison.OrdinalIgnoreCase));
+
+            if (info == null)
+            {
+                return null;
+            }
 
             return ParseProfileFile(info.Path, info.Info.Type);
         }
@@ -387,14 +348,14 @@ namespace Emby.Dlna
 
             foreach (var name in _assembly.GetManifestResourceNames())
             {
-                if (!name.StartsWith(namespaceName))
+                if (!name.StartsWith(namespaceName, StringComparison.Ordinal))
                 {
                     continue;
                 }
 
-                var filename = Path.GetFileName(name).Substring(namespaceName.Length);
-
-                var path = Path.Combine(systemProfilesPath, filename);
+                var path = Path.Join(
+                    systemProfilesPath,
+                    Path.GetFileName(name.AsSpan()).Slice(namespaceName.Length));
 
                 using (var stream = _assembly.GetManifestResourceStream(name))
                 {
@@ -404,9 +365,10 @@ namespace Emby.Dlna
                     {
                         Directory.CreateDirectory(systemProfilesPath);
 
-                        using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read))
+                        // use FileShare.None as this bypasses dotnet bug dotnet/runtime#42790 .
+                        using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            await stream.CopyToAsync(fileStream);
+                            await stream.CopyToAsync(fileStream).ConfigureAwait(false);
                         }
                     }
                 }
@@ -493,10 +455,10 @@ namespace Emby.Dlna
 
         /// <summary>
         /// Recreates the object using serialization, to ensure it's not a subclass.
-        /// If it's a subclass it may not serlialize properly to xml (different root element tag name).
+        /// If it's a subclass it may not serialize properly to xml (different root element tag name).
         /// </summary>
-        /// <param name="profile"></param>
-        /// <returns></returns>
+        /// <param name="profile">The device profile.</param>
+        /// <returns>The re-serialized device profile.</returns>
         private DeviceProfile ReserializeProfile(DeviceProfile profile)
         {
             if (profile.GetType() == typeof(DeviceProfile))
@@ -509,17 +471,9 @@ namespace Emby.Dlna
             return _jsonSerializer.DeserializeFromString<DeviceProfile>(json);
         }
 
-        class InternalProfileInfo
-        {
-            internal DeviceProfileInfo Info { get; set; }
-
-            internal string Path { get; set; }
-        }
-
         public string GetServerDescriptionXml(IHeaderDictionary headers, string serverUuId, string serverAddress)
         {
-            var profile = GetProfile(headers) ??
-                          GetDefaultProfile();
+            var profile = GetDefaultProfile();
 
             var serverId = _appHost.SystemId;
 
@@ -540,7 +494,15 @@ namespace Emby.Dlna
                 Stream = _assembly.GetManifestResourceStream(resource)
             };
         }
+
+        private class InternalProfileInfo
+        {
+            internal DeviceProfileInfo Info { get; set; }
+
+            internal string Path { get; set; }
+        }
     }
+
     /*
     class DlnaProfileEntryPoint : IServerEntryPoint
     {

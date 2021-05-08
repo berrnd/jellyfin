@@ -1,3 +1,5 @@
+#pragma warning disable CS1591
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -30,10 +32,6 @@ namespace MediaBrowser.Controller.MediaEncoding
         public string MediaPath { get; set; }
 
         public bool IsInputVideo { get; set; }
-
-        public IIsoMount IsoMount { get; set; }
-
-        public string[] PlayableStreamFileNames { get; set; }
 
         public string OutputAudioCodec { get; set; }
 
@@ -285,6 +283,11 @@ namespace MediaBrowser.Controller.MediaEncoding
                 return BaseRequest.AudioChannels;
             }
 
+            if (BaseRequest.TranscodingMaxAudioChannels.HasValue)
+            {
+                return BaseRequest.TranscodingMaxAudioChannels;
+            }
+
             if (!string.IsNullOrEmpty(codec))
             {
                 var value = BaseRequest.GetOption(codec, "audiochannels");
@@ -306,7 +309,6 @@ namespace MediaBrowser.Controller.MediaEncoding
         {
             TranscodingType = jobType;
             RemoteHttpHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            PlayableStreamFileNames = Array.Empty<string>();
             SupportedAudioCodecs = Array.Empty<string>();
             SupportedVideoCodecs = Array.Empty<string>();
             SupportedSubtitleCodecs = Array.Empty<string>();
@@ -340,7 +342,8 @@ namespace MediaBrowser.Controller.MediaEncoding
                 {
                     var size = new ImageDimensions(VideoStream.Width.Value, VideoStream.Height.Value);
 
-                    var newSize = DrawingUtils.Resize(size,
+                    var newSize = DrawingUtils.Resize(
+                        size,
                         BaseRequest.Width ?? 0,
                         BaseRequest.Height ?? 0,
                         BaseRequest.MaxWidth ?? 0,
@@ -366,7 +369,8 @@ namespace MediaBrowser.Controller.MediaEncoding
                 {
                     var size = new ImageDimensions(VideoStream.Width.Value, VideoStream.Height.Value);
 
-                    var newSize = DrawingUtils.Resize(size,
+                    var newSize = DrawingUtils.Resize(
+                        size,
                         BaseRequest.Width ?? 0,
                         BaseRequest.Height ?? 0,
                         BaseRequest.MaxWidth ?? 0,
@@ -400,7 +404,7 @@ namespace MediaBrowser.Controller.MediaEncoding
                 {
                     // Don't exceed what the encoder supports
                     // Seeing issues of attempting to encode to 88200
-                    return Math.Min(44100, BaseRequest.AudioSampleRate.Value);
+                    return BaseRequest.AudioSampleRate.Value;
                 }
 
                 return null;
@@ -584,6 +588,11 @@ namespace MediaBrowser.Controller.MediaEncoding
         {
             get
             {
+                if (VideoStream == null)
+                {
+                    return null;
+                }
+
                 if (EncodingHelper.IsCopyCodec(OutputVideoCodec))
                 {
                     return VideoStream?.Codec;
@@ -597,6 +606,11 @@ namespace MediaBrowser.Controller.MediaEncoding
         {
             get
             {
+                if (AudioStream == null)
+                {
+                    return null;
+                }
+
                 if (EncodingHelper.IsCopyCodec(OutputAudioCodec))
                 {
                     return AudioStream?.Codec;
@@ -695,10 +709,12 @@ namespace MediaBrowser.Controller.MediaEncoding
         /// The progressive.
         /// </summary>
         Progressive,
+
         /// <summary>
         /// The HLS.
         /// </summary>
         Hls,
+
         /// <summary>
         /// The dash.
         /// </summary>

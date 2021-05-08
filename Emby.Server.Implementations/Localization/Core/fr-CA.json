@@ -16,7 +16,6 @@
     "Folders": "Dossiers",
     "Genres": "Genres",
     "HeaderAlbumArtists": "Artistes de l'album",
-    "HeaderCameraUploads": "Photos transférées",
     "HeaderContinueWatching": "Continuer à regarder",
     "HeaderFavoriteAlbums": "Albums favoris",
     "HeaderFavoriteArtists": "Artistes favoris",
@@ -114,5 +113,6 @@
     "TaskCleanCache": "Nettoyer le répertoire des fichiers temporaires",
     "TasksApplicationCategory": "Application",
     "TaskCleanCacheDescription": "Supprime les fichiers temporaires qui ne sont plus nécessaire pour le système.",
-    "TasksChannelsCategory": "Canaux Internet"
+    "TasksChannelsCategory": "Canaux Internet",
+    "Default": "Par défaut"
 }

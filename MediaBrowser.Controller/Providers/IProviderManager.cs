@@ -1,15 +1,18 @@
+#pragma warning disable CS1591
+
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Entities;
+using Jellyfin.Data.Events;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.Events;
 using MediaBrowser.Model.Providers;
 
 namespace MediaBrowser.Controller.Providers
@@ -43,6 +46,14 @@ namespace MediaBrowser.Controller.Providers
         Task<ItemUpdateType> RefreshSingleItem(BaseItem item, MetadataRefreshOptions options, CancellationToken cancellationToken);
 
         /// <summary>
+        /// Runs multiple metadata refreshes concurrently.
+        /// </summary>
+        /// <param name="action">The action to run.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A <see cref="Task"/> representing the result of the asynchronous operation.</returns>
+        Task RunMetadataRefresh(Func<Task> action, CancellationToken cancellationToken);
+
+        /// <summary>
         /// Saves the image.
         /// </summary>
         /// <param name="item">The item.</param>
@@ -71,7 +82,7 @@ namespace MediaBrowser.Controller.Providers
         /// <returns>Task.</returns>
         Task SaveImage(BaseItem item, string source, string mimeType, ImageType type, int? imageIndex, bool? saveLocallyWithMedia, CancellationToken cancellationToken);
 
-        Task SaveImage(User user, Stream source, string mimeType, string path);
+        Task SaveImage(Stream source, string mimeType, string path);
 
         /// <summary>
         /// Adds the metadata providers.
@@ -157,7 +168,7 @@ namespace MediaBrowser.Controller.Providers
         /// <param name="url">The URL.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Task{HttpResponseInfo}.</returns>
-        Task<HttpResponseInfo> GetSearchImage(string providerName, string url, CancellationToken cancellationToken);
+        Task<HttpResponseMessage> GetSearchImage(string providerName, string url, CancellationToken cancellationToken);
 
         Dictionary<Guid, Guid> GetRefreshQueue();
 

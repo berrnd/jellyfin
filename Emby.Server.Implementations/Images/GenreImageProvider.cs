@@ -1,6 +1,7 @@
 #pragma warning disable CS1591
 
 using System.Collections.Generic;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.Dto;
@@ -41,7 +42,12 @@ namespace Emby.Server.Implementations.Images
             return _libraryManager.GetItemList(new InternalItemsQuery
             {
                 Genres = new[] { item.Name },
-                IncludeItemTypes = new[] { typeof(MusicAlbum).Name, typeof(MusicVideo).Name, typeof(Audio).Name },
+                IncludeItemTypes = new[]
+                {
+                    nameof(MusicAlbum),
+                    nameof(MusicVideo),
+                    nameof(Audio)
+                },
                 OrderBy = new[] { (ItemSortBy.Random, SortOrder.Ascending) },
                 Limit = 4,
                 Recursive = true,
@@ -76,7 +82,7 @@ namespace Emby.Server.Implementations.Images
             return _libraryManager.GetItemList(new InternalItemsQuery
             {
                 Genres = new[] { item.Name },
-                IncludeItemTypes = new[] { typeof(Series).Name, typeof(Movie).Name },
+                IncludeItemTypes = new[] { nameof(Series), nameof(Movie) },
                 OrderBy = new[] { (ItemSortBy.Random, SortOrder.Ascending) },
                 Limit = 4,
                 Recursive = true,

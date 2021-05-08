@@ -1,3 +1,5 @@
+#pragma warning disable CS1591
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -140,26 +142,6 @@ namespace MediaBrowser.Controller.Entities
         /// </summary>
         /// <value>The video3 D format.</value>
         public Video3DFormat? Video3DFormat { get; set; }
-
-        public string[] GetPlayableStreamFileNames()
-        {
-            var videoType = VideoType;
-
-            if (videoType == VideoType.Iso && IsoType == Model.Entities.IsoType.BluRay)
-            {
-                videoType = VideoType.BluRay;
-            }
-            else if (videoType == VideoType.Iso && IsoType == Model.Entities.IsoType.Dvd)
-            {
-                videoType = VideoType.Dvd;
-            }
-            else
-            {
-                return Array.Empty<string>();
-            }
-
-            throw new NotImplementedException();
-        }
 
         /// <summary>
         /// Gets or sets the aspect ratio.
@@ -413,31 +395,6 @@ namespace MediaBrowser.Controller.Entities
             return updateType;
         }
 
-        public static string[] QueryPlayableStreamFiles(string rootPath, VideoType videoType)
-        {
-            if (videoType == VideoType.Dvd)
-            {
-                return FileSystem.GetFiles(rootPath, new[] { ".vob" }, false, true)
-                    .OrderByDescending(i => i.Length)
-                    .ThenBy(i => i.FullName)
-                    .Take(1)
-                    .Select(i => i.FullName)
-                    .ToArray();
-            }
-
-            if (videoType == VideoType.BluRay)
-            {
-                return FileSystem.GetFiles(rootPath, new[] { ".m2ts" }, false, true)
-                    .OrderByDescending(i => i.Length)
-                    .ThenBy(i => i.FullName)
-                    .Take(1)
-                    .Select(i => i.FullName)
-                    .ToArray();
-            }
-
-            return Array.Empty<string>();
-        }
-
         /// <summary>
         /// Gets a value indicating whether [is3 D].
         /// </summary>
@@ -495,9 +452,10 @@ namespace MediaBrowser.Controller.Entities
             }
         }
 
-        public override void UpdateToRepository(ItemUpdateType updateReason, CancellationToken cancellationToken)
+        /// <inheritdoc />
+        public override async Task UpdateToRepositoryAsync(ItemUpdateType updateReason, CancellationToken cancellationToken)
         {
-            base.UpdateToRepository(updateReason, cancellationToken);
+            await base.UpdateToRepositoryAsync(updateReason, cancellationToken).ConfigureAwait(false);
 
             var localAlternates = GetLocalAlternateVersionIds()
                 .Select(i => LibraryManager.GetItemById(i))
@@ -514,7 +472,7 @@ namespace MediaBrowser.Controller.Entities
                 item.Genres = Genres;
                 item.ProviderIds = ProviderIds;
 
-                item.UpdateToRepository(ItemUpdateType.MetadataDownload, cancellationToken);
+                await item.UpdateToRepositoryAsync(ItemUpdateType.MetadataDownload, cancellationToken).ConfigureAwait(false);
             }
         }
 

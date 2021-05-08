@@ -1,60 +1,38 @@
 #pragma warning disable CS1591
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using Jellyfin.Data.Enums;
 using Jellyfin.Data.Entities;
-using MediaBrowser.Common.Extensions;
-using MediaBrowser.Controller.Configuration;
+using Jellyfin.Data.Enums;
+using Jellyfin.Data.Events;
 using MediaBrowser.Controller.Devices;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Security;
 using MediaBrowser.Model.Devices;
-using MediaBrowser.Model.Events;
 using MediaBrowser.Model.Querying;
-using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Session;
 
 namespace Emby.Server.Implementations.Devices
 {
     public class DeviceManager : IDeviceManager
     {
-        private readonly IJsonSerializer _json;
         private readonly IUserManager _userManager;
-        private readonly IServerConfigurationManager _config;
         private readonly IAuthenticationRepository _authRepo;
-        private readonly Dictionary<string, ClientCapabilities> _capabilitiesCache;
-        private readonly object _capabilitiesSyncLock = new object();
+        private readonly ConcurrentDictionary<string, ClientCapabilities> _capabilitiesMap = new ();
+
+        public DeviceManager(IAuthenticationRepository authRepo, IUserManager userManager)
+        {
+            _userManager = userManager;
+            _authRepo = authRepo;
+        }
 
         public event EventHandler<GenericEventArgs<Tuple<string, DeviceOptions>>> DeviceOptionsUpdated;
 
-        public DeviceManager(
-            IAuthenticationRepository authRepo,
-            IJsonSerializer json,
-            IUserManager userManager,
-            IServerConfigurationManager config)
-        {
-            _json = json;
-            _userManager = userManager;
-            _config = config;
-            _authRepo = authRepo;
-            _capabilitiesCache = new Dictionary<string, ClientCapabilities>(StringComparer.OrdinalIgnoreCase);
-        }
-
         public void SaveCapabilities(string deviceId, ClientCapabilities capabilities)
         {
-            var path = Path.Combine(GetDevicePath(deviceId), "capabilities.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-
-            lock (_capabilitiesSyncLock)
-            {
-                _capabilitiesCache[deviceId] = capabilities;
-
-                _json.SerializeToFile(capabilities, path);
-            }
+            _capabilitiesMap[deviceId] = capabilities;
         }
 
         public void UpdateDeviceOptions(string deviceId, DeviceOptions options)
@@ -71,32 +49,12 @@ namespace Emby.Server.Implementations.Devices
 
         public ClientCapabilities GetCapabilities(string id)
         {
-            lock (_capabilitiesSyncLock)
-            {
-                if (_capabilitiesCache.TryGetValue(id, out var result))
-                {
-                    return result;
-                }
-
-                var path = Path.Combine(GetDevicePath(id), "capabilities.json");
-                try
-                {
-                    return _json.DeserializeFromFile<ClientCapabilities>(path) ?? new ClientCapabilities();
-                }
-                catch
-                {
-                }
-            }
-
-            return new ClientCapabilities();
+            return _capabilitiesMap.TryGetValue(id, out ClientCapabilities result)
+                ? result
+                : new ClientCapabilities();
         }
 
         public DeviceInfo GetDevice(string id)
-        {
-            return GetDevice(id, true);
-        }
-
-        private DeviceInfo GetDevice(string id, bool includeCapabilities)
         {
             var session = _authRepo.Get(new AuthenticationInfoQuery
             {
@@ -151,16 +109,6 @@ namespace Emby.Server.Implementations.Devices
                 DateLastActivity = authInfo.DateLastActivity,
                 IconUrl = caps?.IconUrl
             };
-        }
-
-        private string GetDevicesPath()
-        {
-            return Path.Combine(_config.ApplicationPaths.DataPath, "devices");
-        }
-
-        private string GetDevicePath(string id)
-        {
-            return Path.Combine(GetDevicesPath(), id.GetMD5().ToString("N", CultureInfo.InvariantCulture));
         }
 
         public bool CanAccessDevice(User user, string deviceId)
